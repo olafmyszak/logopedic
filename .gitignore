@@ -1,0 +1,86 @@
+######################################
+## .NET / Rider / Angular GitIgnore ##
+######################################
+
+# === .NET Build Artifacts ===
+bin/
+obj/
+[Bb]uild/
+[Bb]uilds/
+artifacts/
+*.exe
+*.dll
+*.pdb
+*.cache
+*.log
+*.vspscc
+*.user
+*.suo
+*.dbmdl
+
+# === Entity Framework Migrations Backup Files ===
+*.jfm
+
+# === Rider / JetBrains IDE ===
+.idea/
+*.iml
+out/
+
+# === Visual Studio / VS Code ===
+.vs/
+.vscode/
+*.swp
+*.user
+*.userosscache
+*.sln.docstates
+
+# === Angular / Node ===
+node_modules/
+dist/
+tmp/
+temp/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+.pnpm-debug.log*
+
+# === Logs ===
+*.log
+logs/
+*.nlog
+*.tlog
+
+# === Database Dumps / Backups ===
+*.sql
+*.dump
+*.backup
+*.tar
+*.bak
+*.db
+*.sqlite
+dump_*.*
+backup_*.*
+pg_dump_*.*
+pg_restore_*.*
+db-backup/
+
+# === OS-specific ===
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+
+# === Environment / Secrets ===
+.env
+.env.*
+secrets.json
+
+# === Others ===
+*.tmp
+*.old
