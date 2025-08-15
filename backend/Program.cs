@@ -4,7 +4,8 @@ using Microsoft.EntityFrameworkCore;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddDbContext<LogopedicContext>(opt =>
-    opt.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+    opt.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))
+);
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -36,13 +37,17 @@ using (var scope = app.Services.CreateScope())
     try
     {
         var context = services.GetRequiredService<LogopedicContext>();
-        context.Database.Migrate();
+
+        await context.Database.MigrateAsync();
         logger.LogInformation("Database migrated successfully.");
+
+        DbInitializer.Seed(context);
+        logger.LogInformation("Database seeded successfully.");
     }
     catch (Exception ex)
     {
         logger.LogCritical(ex, "An error occurred while migrating the database.");
-        throw;
+        // throw;
     }
 }
 
