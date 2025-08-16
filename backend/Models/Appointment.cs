@@ -6,7 +6,7 @@ public class Appointment
 {
     public int Id { get; set; }
     public int PatientId { get; set; }
-    public DateTime StartTime { get; set; }
+    public DateTimeOffset StartTime { get; set; }
     public int DurationInMinutes { get; set; }
     public AppointmentType Type { get; set; }
     public AppointmentStatus Status { get; set; }
