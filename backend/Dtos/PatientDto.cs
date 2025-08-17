@@ -7,5 +7,4 @@ public class PatientDto
     public DateTimeOffset DateOfBirth { get; set; }
     public string ContactInfo { get; set; }
     public string Notes { get; set; }
-    public List<AppointmentDto> Appointments { get; set; }  
 }

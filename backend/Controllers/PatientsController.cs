@@ -12,9 +12,7 @@ public class PatientsController(LogopedicContext context) : ControllerBase
     [HttpGet]
     public async Task<ActionResult<IEnumerable<PatientDto>>> GetAllPatients()
     {
-        var patients = await context.Patients
-            .Include(p => p.Appointments) // load appointments too
-            .ToListAsync();
+        var patients = await context.Patients.ToListAsync();
         
         if (patients.Count == 0)
         {
@@ -28,14 +26,6 @@ public class PatientsController(LogopedicContext context) : ControllerBase
             DateOfBirth = p.DateOfBirth,
             ContactInfo = p.ContactInfo,
             Notes = p.Notes,
-            Appointments = p.Appointments.Select(a => new AppointmentDto
-            {
-                Id = a.Id,
-                StartTime = a.StartTime,
-                DurationInMinutes = a.DurationInMinutes,
-                Type = a.Type.ToString(),
-                Status = a.Status.ToString()
-            }).ToList()
         }).ToList();
 
         return Ok(result);
