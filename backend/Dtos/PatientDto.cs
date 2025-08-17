@@ -2,9 +2,9 @@
 
 public class PatientDto
 {
-    public int Id { get; set; }
-    public string FullName { get; set; }
-    public DateTimeOffset DateOfBirth { get; set; }
-    public string ContactInfo { get; set; }
-    public string Notes { get; set; }
+    public required int Id { get; set; }
+    public required string FullName { get; set; }
+    public required DateTimeOffset DateOfBirth { get; set; }
+    public required string ContactInfo { get; set; }
+    public string? Notes { get; set; }
 }
