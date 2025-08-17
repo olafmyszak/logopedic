@@ -5,9 +5,9 @@ namespace LogopedicBackend.Dtos;
 
 public class AppointmentDto
 {
-    public int Id { get; set; }
-    public DateTimeOffset StartTime { get; set; }
-    public int DurationInMinutes { get; set; }
-    public string Type { get; set; }
-    public string Status { get; set; }
+    public required int Id { get; set; }
+    public required DateTimeOffset StartTime { get; set; }
+    public required int DurationInMinutes { get; set; }
+    public required string Type { get; set; }
+    public required string Status { get; set; }
 }
