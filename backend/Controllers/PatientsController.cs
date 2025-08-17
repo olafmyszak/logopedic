@@ -37,7 +37,7 @@ public class PatientsController(LogopedicContext context) : ControllerBase
     {
         var patient = await context.Patients.FindAsync(id);
 
-        if (patient == null)
+        if (patient is null)
         {
             return NotFound();
         }
@@ -79,5 +79,67 @@ public class PatientsController(LogopedicContext context) : ControllerBase
         };
 
         return CreatedAtAction(nameof(GetPatientById), new { id = patient.Id }, result);
+    }
+
+    [HttpPatch("{id:int}")]
+    public async Task<IActionResult> UpdatePatient(int id, UpdatePatientDto dto)
+    {
+        var patient = await context.Patients.FindAsync(id);
+
+        if (patient is null)
+        {
+            return NotFound();
+        }
+
+        if (dto.FullName is not null)
+        {
+            patient.FullName = dto.FullName;
+        }
+
+        if (dto.DateOfBirth.HasValue)
+        {
+            patient.DateOfBirth = dto.DateOfBirth.Value;
+        }
+
+        if (dto.ContactInfo is not null)
+        {
+            patient.ContactInfo = dto.ContactInfo;
+        }
+
+        if (dto.Notes is not null)
+        {
+            patient.Notes = dto.Notes;
+        }
+
+        if (dto.TherapistId is not null)
+        {
+            var therapistExists = await context.Therapists.AnyAsync(t => t.Id == dto.TherapistId);
+
+            if (!therapistExists)
+            {
+                return BadRequest($"Therapist does not exist");
+            }
+
+            patient.TherapistId = dto.TherapistId.Value;
+        }
+
+        await context.SaveChangesAsync();
+        return NoContent();
+    }
+
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> DeletePatient(int id)
+    {
+        var patient = await context.Patients.FindAsync(id);
+
+        if (patient is null)
+        {
+            return NotFound();
+        }
+
+        context.Patients.Remove(patient);
+        await context.SaveChangesAsync();
+
+        return NoContent();
     }
 }
