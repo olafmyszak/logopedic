@@ -5,6 +5,7 @@ namespace LogopedicBackend.Data;
 
 public class LogopedicContext(DbContextOptions<LogopedicContext> options) : DbContext(options)
 {
+    public DbSet<Therapist> Therapists { get; set; }
     public DbSet<Patient> Patients { get; set; }
     public DbSet<Appointment> Appointments { get; set; }
 
