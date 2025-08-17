@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace LogopedicBackend.Migrations
 {
     [DbContext(typeof(LogopedicContext))]
-    [Migration("20250815210126_InitialCreate")]
+    [Migration("20250817182155_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -39,10 +39,13 @@ namespace LogopedicBackend.Migrations
                     b.Property<int>("PatientId")
                         .HasColumnType("integer");
 
-                    b.Property<DateTime>("StartTime")
+                    b.Property<DateTimeOffset>("StartTime")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TherapistId")
                         .HasColumnType("integer");
 
                     b.Property<int>("Type")
@@ -51,6 +54,8 @@ namespace LogopedicBackend.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("PatientId");
+
+                    b.HasIndex("TherapistId");
 
                     b.ToTable("Appointments");
                 });
@@ -67,7 +72,7 @@ namespace LogopedicBackend.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<DateTime>("DateOfBirth")
+                    b.Property<DateTimeOffset>("DateOfBirth")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("FullName")
@@ -78,9 +83,35 @@ namespace LogopedicBackend.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<int>("TherapistId")
+                        .HasColumnType("integer");
+
                     b.HasKey("Id");
 
+                    b.HasIndex("TherapistId");
+
                     b.ToTable("Patients");
+                });
+
+            modelBuilder.Entity("LogopedicBackend.Models.Therapist", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Therapist");
                 });
 
             modelBuilder.Entity("LogopedicBackend.Models.Appointment", b =>
@@ -91,12 +122,38 @@ namespace LogopedicBackend.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("LogopedicBackend.Models.Therapist", "Therapist")
+                        .WithMany("Appointments")
+                        .HasForeignKey("TherapistId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.Navigation("Patient");
+
+                    b.Navigation("Therapist");
+                });
+
+            modelBuilder.Entity("LogopedicBackend.Models.Patient", b =>
+                {
+                    b.HasOne("LogopedicBackend.Models.Therapist", "Therapist")
+                        .WithMany("Patients")
+                        .HasForeignKey("TherapistId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Therapist");
                 });
 
             modelBuilder.Entity("LogopedicBackend.Models.Patient", b =>
                 {
                     b.Navigation("Appointments");
+                });
+
+            modelBuilder.Entity("LogopedicBackend.Models.Therapist", b =>
+                {
+                    b.Navigation("Appointments");
+
+                    b.Navigation("Patients");
                 });
 #pragma warning restore 612, 618
         }

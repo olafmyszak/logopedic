@@ -11,10 +11,20 @@ public class LogopedicContext(DbContextOptions<LogopedicContext> options) : DbCo
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
-    
+
         modelBuilder.Entity<Appointment>()
             .HasOne(a => a.Patient)
             .WithMany(p => p.Appointments)
             .HasForeignKey(a => a.PatientId);
+
+        modelBuilder.Entity<Appointment>()
+            .HasOne(a => a.Therapist)
+            .WithMany(t => t.Appointments)
+            .HasForeignKey(a => a.TherapistId);
+
+        modelBuilder.Entity<Patient>()
+            .HasOne(p => p.Therapist)
+            .WithMany(t => t.Patients)
+            .HasForeignKey(p => p.TherapistId);
     }
 }
