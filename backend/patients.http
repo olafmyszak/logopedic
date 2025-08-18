@@ -14,7 +14,7 @@ Accept: application/json
   "dateOfBirth": "1990-05-12T00:00:00Z",
   "contactInfo": "john.doe@example.com, +1-555-123-4567",
   "notes": "First consultation scheduled next week.",
-  "therapistId": 1
+  "therapistId": -1
 }
 
 ### PATCH patient

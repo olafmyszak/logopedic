@@ -57,8 +57,12 @@ public class PatientsController(LogopedicContext context) : ControllerBase
     [HttpPost]
     public async Task<ActionResult<PatientDto>> CreatePatient(CreatePatientDto dto)
     {
-        // TODO: therapist id validation
-        
+        var therapistExists = await context.Therapists.AnyAsync(t => t.Id == dto.TherapistId);
+        if (!therapistExists)
+        {
+            return NotFound($"Therapist id {dto.TherapistId} not found");
+        }
+
         var patient = new Patient
         {
             FullName = dto.FullName,

@@ -15,7 +15,7 @@ Accept: application/json
   "type": "Diagnosis",
   "status": "Scheduled",
   "therapistId": 1,
-  "patientId": 4
+  "patientId": -1
 }
 
 ### Update an appointment
@@ -27,7 +27,8 @@ Accept: application/json
   "startTime": "2025-08-18T18:19:20.854Z",
   "durationInMinutes": 10,
   "type": "Diagnosis",
-  "status": "NoShow"
+  "status": "NoShow",
+  "patientId": 1
 }
 
 ### Delete an appointment
