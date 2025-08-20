@@ -57,6 +57,12 @@ public class PatientsController(LogopedicContext context) : ControllerBase
     [HttpPost]
     public async Task<ActionResult<PatientDto>> CreatePatient(CreatePatientDto dto)
     {
+        var therapistExists = await context.Therapists.AnyAsync(t => t.Id == dto.TherapistId);
+        if (!therapistExists)
+        {
+            return NotFound($"Therapist id {dto.TherapistId} not found");
+        }
+
         var patient = new Patient
         {
             FullName = dto.FullName,
@@ -96,7 +102,7 @@ public class PatientsController(LogopedicContext context) : ControllerBase
             patient.FullName = dto.FullName;
         }
 
-        if (dto.DateOfBirth.HasValue)
+        if (dto.DateOfBirth is not null)
         {
             patient.DateOfBirth = dto.DateOfBirth.Value;
         }
@@ -109,18 +115,6 @@ public class PatientsController(LogopedicContext context) : ControllerBase
         if (dto.Notes is not null)
         {
             patient.Notes = dto.Notes;
-        }
-
-        if (dto.TherapistId is not null)
-        {
-            var therapistExists = await context.Therapists.AnyAsync(t => t.Id == dto.TherapistId);
-
-            if (!therapistExists)
-            {
-                return BadRequest($"Therapist does not exist");
-            }
-
-            patient.TherapistId = dto.TherapistId.Value;
         }
 
         await context.SaveChangesAsync();

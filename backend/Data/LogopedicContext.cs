@@ -13,6 +13,10 @@ public class LogopedicContext(DbContextOptions<LogopedicContext> options) : DbCo
     {
         base.OnModelCreating(modelBuilder);
 
+        modelBuilder.Entity<Therapist>()
+            .HasIndex(t => t.Email)
+            .IsUnique();
+
         modelBuilder.Entity<Appointment>()
             .HasOne(a => a.Patient)
             .WithMany(p => p.Appointments)

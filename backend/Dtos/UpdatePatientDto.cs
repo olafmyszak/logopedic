@@ -6,5 +6,4 @@ public class UpdatePatientDto
     public DateTimeOffset? DateOfBirth { get; set; }
     public string? ContactInfo { get; set; }
     public string? Notes { get; set; }
-    public int? TherapistId { get; set; }
 }

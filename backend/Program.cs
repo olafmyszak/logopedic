@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using LogopedicBackend.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -7,7 +8,9 @@ builder.Services.AddDbContext<LogopedicContext>(opt =>
     opt.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))
 );
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(opts => { opts.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()); });
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
