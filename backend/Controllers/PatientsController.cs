@@ -57,8 +57,8 @@ public class PatientsController(LogopedicContext context) : ControllerBase
     [HttpPost]
     public async Task<ActionResult<PatientDto>> CreatePatient(CreatePatientDto dto)
     {
-        var therapistExists = await context.Therapists.AnyAsync(t => t.Id == dto.TherapistId);
-        if (!therapistExists)
+        var therapist = await context.Therapists.FindAsync(dto.TherapistId);
+        if (therapist is null)
         {
             return NotFound($"Therapist id {dto.TherapistId} not found");
         }
@@ -69,7 +69,8 @@ public class PatientsController(LogopedicContext context) : ControllerBase
             DateOfBirth = dto.DateOfBirth,
             ContactInfo = dto.ContactInfo,
             Notes = dto.Notes,
-            TherapistId = dto.TherapistId
+            TherapistId = dto.TherapistId,
+            Therapist = therapist
         };
 
         context.Patients.Add(patient);

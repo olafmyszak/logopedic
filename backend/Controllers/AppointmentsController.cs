@@ -59,14 +59,14 @@ public class AppointmentsController(LogopedicContext context) : ControllerBase
     [HttpPost]
     public async Task<ActionResult<AppointmentDto>> CreateAppointment(CreateAppointmentDto dto)
     {
-        var therapistExists = await context.Therapists.AnyAsync(t => t.Id == dto.TherapistId);
-        if (!therapistExists)
+        var therapist = await context.Therapists.FindAsync(dto.TherapistId);
+        if (therapist is null)
         {
             return NotFound($"Therapist id {dto.TherapistId} not found");
         }
 
-        var patientExists = await context.Patients.AnyAsync(p => p.Id == dto.PatientId);
-        if (!patientExists)
+        var patient = await context.Patients.FindAsync(dto.PatientId);
+        if (patient is null)
         {
             return NotFound($"Patient id {dto.PatientId} not found");
         }
@@ -78,7 +78,9 @@ public class AppointmentsController(LogopedicContext context) : ControllerBase
             Type = dto.Type,
             Status = dto.Status,
             TherapistId = dto.TherapistId,
-            PatientId = dto.PatientId
+            Therapist = therapist,
+            PatientId = dto.PatientId,
+            Patient = patient
         };
 
         context.Appointments.Add(appointment);
@@ -125,7 +127,7 @@ public class AppointmentsController(LogopedicContext context) : ControllerBase
         {
             appointment.Status = dto.Status.Value;
         }
-        
+
         if (dto.PatientId is not null)
         {
             var patientExists = await context.Patients.AnyAsync(p => p.Id == dto.PatientId);

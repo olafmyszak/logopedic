@@ -1,18 +1,32 @@
+using System.Text;
 using System.Text.Json.Serialization;
 using LogopedicBackend.Data;
+using LogopedicBackend.Extensions;
+using LogopedicBackend.Models;
+using LogopedicBackend.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddDbContext<LogopedicContext>(opt =>
-    opt.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+builder.Services.AddAuthorization();
+builder.Services.AddAuthentication().AddCookie(IdentityConstants.ApplicationScheme);
+
+builder.Services.AddIdentityCore<User>()
+    .AddSignInManager()
+    .AddEntityFrameworkStores<LogopedicContext>();
+
+builder.Services.AddDbContext<LogopedicContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("Default"))
 );
 
 builder.Services.AddControllers()
     .AddJsonOptions(opts => { opts.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()); });
-
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
 
 builder.Services.AddCors(opt =>
 {
@@ -24,40 +38,25 @@ builder.Services.AddCors(opt =>
     });
 });
 
+builder.Services.AddScoped<AdminService>();
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
-}
 
-using (var scope = app.Services.CreateScope())
-{
-    var services = scope.ServiceProvider;
-    var logger = services.GetRequiredService<ILogger<Program>>();
-
-    try
-    {
-        var context = services.GetRequiredService<LogopedicContext>();
-
-        await context.Database.MigrateAsync();
-        logger.LogInformation("Database migrated successfully.");
-
-        DbInitializer.Seed(context);
-        logger.LogInformation("Database seeded successfully.");
-    }
-    catch (Exception ex)
-    {
-        logger.LogCritical(ex, "An error occurred while migrating the database.");
-        // throw;
-    }
+    app.ApplyMigrations();
 }
 
 app.UseHttpsRedirection();
 
+// app.MapIdentityApi<User>();
+
 app.UseCors("LocalDev");
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
