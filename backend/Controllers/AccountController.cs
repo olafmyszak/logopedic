@@ -70,19 +70,4 @@ public class AccountController(
 
         return Ok();
     }
-
-    [Authorize]
-    [HttpGet("info")]
-    public ActionResult GetInfo()
-    {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        var email = User.FindFirstValue(ClaimTypes.Email);
-
-        if (userId is null || email is null)
-        {
-            return Unauthorized();
-        }
-
-        return Ok();
-    }
 }
