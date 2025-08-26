@@ -26,7 +26,7 @@ public class PatientsController(LogopedicContext context) : ControllerBase
             FullName = p.FullName,
             DateOfBirth = p.DateOfBirth,
             ContactInfo = p.ContactInfo,
-            Notes = p.Notes,
+            Notes = p.Notes
         }).ToList();
 
         return Ok(result);

@@ -1,14 +1,19 @@
-﻿using LogopedicBackend.Data;
+﻿using System.Security.Claims;
+using LogopedicBackend.Data;
 using LogopedicBackend.Dtos;
 using LogopedicBackend.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
 namespace LogopedicBackend.Controllers;
 
-[ApiController] 
+[ApiController]
 [Route("api/[controller]")]
-public class AccountController(LogopedicContext context, UserManager<User> userManager, SignInManager<User> signInManager)
+public class AccountController(
+    LogopedicContext context,
+    UserManager<User> userManager,
+    SignInManager<User> signInManager)
     : ControllerBase
 {
     [HttpPost("register")]
@@ -51,6 +56,29 @@ public class AccountController(LogopedicContext context, UserManager<User> userM
 
         var result = await signInManager.PasswordSignInAsync(user, dto.Password, dto.IsPersistent, false);
         if (!result.Succeeded)
+        {
+            return Unauthorized();
+        }
+
+        return Ok();
+    }
+
+    [HttpPost("logout")]
+    public async Task<IActionResult> LogoutAsync()
+    {
+        await signInManager.SignOutAsync();
+
+        return Ok();
+    }
+
+    [Authorize]
+    [HttpGet("info")]
+    public ActionResult GetInfo()
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var email = User.FindFirstValue(ClaimTypes.Email);
+
+        if (userId is null || email is null)
         {
             return Unauthorized();
         }

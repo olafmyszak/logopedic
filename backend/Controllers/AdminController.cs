@@ -6,10 +6,10 @@ namespace LogopedicBackend.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(Roles = "Admin")]
 public class AdminController(AdminService adminService) : ControllerBase
 {
     [HttpDelete("user/{email}")]
-    // [Authorize(Roles = "Admin")] // 🔒 only admins
     public async Task<IActionResult> DeleteUser(string email)
     {
         var success = await adminService.DeleteUserAndDomainDataAsync(email);

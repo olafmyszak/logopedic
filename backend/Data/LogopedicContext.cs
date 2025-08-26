@@ -14,7 +14,7 @@ public class LogopedicContext(DbContextOptions<LogopedicContext> options)
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
-        
+
         modelBuilder.HasDefaultSchema("identity");
 
         modelBuilder.Entity<Therapist>()

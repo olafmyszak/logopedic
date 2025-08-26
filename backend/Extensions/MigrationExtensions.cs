@@ -10,7 +10,7 @@ public static class MigrationExtensions
         using var scope = app.ApplicationServices.CreateScope();
 
         using var context = scope.ServiceProvider.GetRequiredService<LogopedicContext>();
-        
+
         context.Database.Migrate();
     }
 }
