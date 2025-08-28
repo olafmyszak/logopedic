@@ -3,13 +3,13 @@ using LogopedicBackend.Data;
 using LogopedicBackend.Extensions;
 using LogopedicBackend.Models;
 using LogopedicBackend.Services;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
-
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
 
 builder.Services.AddAuthorization();
 builder.Services.AddAuthentication().AddCookie(
@@ -42,20 +42,68 @@ builder.Services.AddDbContext<LogopedicContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("Default"))
 );
 
-builder.Services.AddControllers()
-    .AddJsonOptions(opts => { opts.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()); });
-
-builder.Services.AddCors(opt =>
+builder.Services.AddAntiforgery(options =>
 {
-    opt.AddPolicy("LocalDev", policy =>
+    options.Cookie.Name = "XSRF-TOKEN";
+    options.Cookie.HttpOnly = false;
+    options.HeaderName = "X-XSRF-TOKEN";
+});
+
+builder.Services.AddControllersWithViews(options =>
+    {
+        options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute());
+    })
+    .AddJsonOptions(options => { options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()); });
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("LocalDev", policy =>
     {
         policy.WithOrigins("http://localhost:4200")
             .AllowAnyHeader()
-            .AllowAnyMethod();
+            .AllowAnyMethod()
+            .AllowCredentials();
     });
 });
 
 builder.Services.AddScoped<AdminService>();
+
+var keysFolder = new DirectoryInfo("/keys");
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(keysFolder)
+    .SetApplicationName("Logopedic");
+
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.AddSecurityDefinition("X-XSRF-TOKEN", new OpenApiSecurityScheme
+    {
+        Description = "Anti-forgery token",
+        Name = "X-XSRF-TOKEN",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.ApiKey,
+        Scheme = "X-XSRF-TOKEN"
+    });
+
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "X-XSRF-TOKEN"
+                },
+                Scheme = "X-XSRF-TOKEN",
+                Name = "X-XSRF-TOKEN",
+                In = ParameterLocation.Header
+            },
+            new List<string>()
+        }
+    });
+});
+
 
 var app = builder.Build();
 
@@ -70,6 +118,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseAntiforgery();
 
 app.UseCors("LocalDev");
 

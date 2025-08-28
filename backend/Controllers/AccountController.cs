@@ -1,8 +1,6 @@
-﻿using System.Security.Claims;
-using LogopedicBackend.Data;
+﻿using LogopedicBackend.Data;
 using LogopedicBackend.Dtos;
 using LogopedicBackend.Models;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
