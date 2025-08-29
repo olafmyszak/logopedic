@@ -1,4 +1,5 @@
-﻿using LogopedicBackend.Services;
+﻿using LogopedicBackend.Constants;
+using LogopedicBackend.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -6,7 +7,7 @@ namespace LogopedicBackend.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = AppRoles.Admin)]
 public class AdminController(AdminService adminService) : ControllerBase
 {
     [HttpDelete("user/{email}")]

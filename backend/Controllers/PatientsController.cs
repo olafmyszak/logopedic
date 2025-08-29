@@ -1,6 +1,8 @@
-﻿using LogopedicBackend.Data;
+﻿using LogopedicBackend.Constants;
+using LogopedicBackend.Data;
 using LogopedicBackend.Dtos;
 using LogopedicBackend.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,6 +10,7 @@ namespace LogopedicBackend.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(Roles = AppRoles.Therapist)]
 public class PatientsController(LogopedicContext context) : ControllerBase
 {
     [HttpGet]

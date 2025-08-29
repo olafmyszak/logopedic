@@ -1,4 +1,4 @@
-﻿using LogopedicBackend.Models.Enums;
+﻿using LogopedicBackend.Enums;
 
 namespace LogopedicBackend.Models;
 

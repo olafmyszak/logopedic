@@ -1,4 +1,5 @@
-﻿using LogopedicBackend.Data;
+﻿using LogopedicBackend.Constants;
+using LogopedicBackend.Data;
 using LogopedicBackend.Dtos;
 using LogopedicBackend.Models;
 using Microsoft.AspNetCore.Identity;
@@ -29,6 +30,8 @@ public class AccountController(
         {
             return BadRequest(create.Errors);
         }
+
+        await userManager.AddToRoleAsync(user, AppRoles.Therapist);
 
         var therapist = new Therapist
         {

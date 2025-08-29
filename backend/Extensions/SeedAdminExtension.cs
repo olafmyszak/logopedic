@@ -1,4 +1,5 @@
-﻿using LogopedicBackend.Models;
+﻿using LogopedicBackend.Constants;
+using LogopedicBackend.Models;
 using Microsoft.AspNetCore.Identity;
 
 namespace LogopedicBackend.Extensions;
@@ -9,18 +10,8 @@ public static class SeedAdminExtension
     {
         using var scope = app.ApplicationServices.CreateScope();
 
-        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
         var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-
-        const string role = "Admin";
-
-        var adminExists = await roleManager.RoleExistsAsync("Admin");
-        if (!adminExists)
-        {
-            await roleManager.CreateAsync(new IdentityRole(role));
-            logger.LogInformation($"Created {role} role");
-        }
 
         const string adminEmail = "admin@logopedic.com";
         var adminUser = await userManager.FindByEmailAsync(adminEmail);
@@ -31,10 +22,10 @@ public static class SeedAdminExtension
             return;
         }
 
-        if (!await userManager.IsInRoleAsync(adminUser, role))
+        if (!await userManager.IsInRoleAsync(adminUser, AppRoles.Admin))
         {
-            await userManager.AddToRoleAsync(adminUser, role);
-            logger.LogInformation($"Admin user {adminEmail} assigned to role {role}");
+            await userManager.AddToRoleAsync(adminUser, AppRoles.Admin);
+            logger.LogInformation($"Admin user {adminEmail} assigned to role {AppRoles.Admin}");
         }
     }
 }

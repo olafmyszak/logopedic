@@ -104,9 +104,9 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
-
 var app = builder.Build();
 
+await app.SeedRolesAsync();
 await app.SeedAdminAsync();
 
 if (app.Environment.IsDevelopment())
