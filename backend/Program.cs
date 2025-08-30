@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using LogopedicBackend.Data;
+using LogopedicBackend.Exceptions;
 using LogopedicBackend.Extensions;
 using LogopedicBackend.Models;
 using LogopedicBackend.Services;
@@ -10,6 +11,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
 
 builder.Services.AddAuthorization();
 builder.Services.AddAuthentication().AddCookie(
@@ -122,6 +126,8 @@ if (app.Environment.IsDevelopment())
 
     app.ApplyMigrations();
 }
+
+app.UseExceptionHandler();
 
 app.UseHttpsRedirection();
 
