@@ -1,163 +1,69 @@
 ﻿using LogopedicBackend.Constants;
-using LogopedicBackend.Data;
 using LogopedicBackend.Dtos;
-using LogopedicBackend.Models;
+using LogopedicBackend.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace LogopedicBackend.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
 [Authorize(Roles = AppRoles.Therapist)]
-public class AppointmentsController(LogopedicContext context) : ControllerBase
+public class AppointmentsController(IAppointmentService appointmentService) : ControllerBase
 {
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<AppointmentDto>>> GetAllAppointments()
+    public async Task<ActionResult<IEnumerable<AppointmentDto>>> GetAll(CancellationToken ct)
     {
-        var appointments = await context.Appointments
-            .Include(a => a.Patient)
-            .ToListAsync();
-
-        if (appointments.Count == 0)
-        {
-            return NotFound("No appointments found");
-        }
-
-        var result = appointments.Select(a => new AppointmentDto
-        {
-            Id = a.Id,
-            StartTime = a.StartTime,
-            DurationInMinutes = a.DurationInMinutes,
-            Type = a.Type,
-            Status = a.Status
-        }).ToList();
-
+        var result = await appointmentService.GetAllAsync(ct);
         return Ok(result);
     }
 
     [HttpGet("{id:int}")]
-    public async Task<ActionResult<AppointmentDto>> GetAppointmentById(int id)
+    public async Task<ActionResult<AppointmentDto>> GetById(int id, CancellationToken ct)
     {
-        var appointment = await context.Appointments.FindAsync(id);
+        var appointment = await appointmentService.GetByIdAsync(id, ct);
 
         if (appointment is null)
         {
             return NotFound();
         }
 
-        var result = new AppointmentDto
-        {
-            Id = appointment.Id,
-            StartTime = appointment.StartTime,
-            DurationInMinutes = appointment.DurationInMinutes,
-            Type = appointment.Type,
-            Status = appointment.Status
-        };
-
-        return Ok(result);
+        return Ok(appointment);
     }
 
     [HttpPost]
-    public async Task<ActionResult<AppointmentDto>> CreateAppointment(CreateAppointmentDto dto)
+    public async Task<ActionResult<AppointmentDto>> Create(CreateAppointmentDto dto, CancellationToken ct)
     {
-        var therapist = await context.Therapists.FindAsync(dto.TherapistId);
-        if (therapist is null)
-        {
-            return NotFound($"Therapist id {dto.TherapistId} not found");
-        }
+        var result = await appointmentService.CreateAsync(dto, ct);
 
-        var patient = await context.Patients.FindAsync(dto.PatientId);
-        if (patient is null)
-        {
-            return NotFound($"Patient id {dto.PatientId} not found");
-        }
-
-        var appointment = new Appointment
-        {
-            StartTime = dto.StartTime,
-            DurationInMinutes = dto.DurationInMinutes,
-            Type = dto.Type,
-            Status = dto.Status,
-            TherapistId = dto.TherapistId,
-            Therapist = therapist,
-            PatientId = dto.PatientId,
-            Patient = patient
-        };
-
-        context.Appointments.Add(appointment);
-        await context.SaveChangesAsync();
-
-        var result = new AppointmentDto
-        {
-            Id = appointment.Id,
-            StartTime = appointment.StartTime,
-            DurationInMinutes = appointment.DurationInMinutes,
-            Type = appointment.Type,
-            Status = appointment.Status
-        };
-
-        return CreatedAtAction(nameof(GetAppointmentById), new { id = appointment.Id }, result);
+        return result.Match<ActionResult<AppointmentDto>>(
+            created => CreatedAtAction(nameof(GetById), new { id = created.Appointment.Id }, created.Appointment),
+            _ => NotFound($"Patient id {dto.PatientId} not found or not associated with current therapist"),
+            _ => Conflict("Requested time slot is already taken")
+        );
     }
 
     [HttpPatch("{id:int}")]
-    public async Task<IActionResult> UpdateAppointment(int id, UpdateAppointmentDto dto)
+    public async Task<IActionResult> Patch(int id, [FromBody] UpdateAppointmentDto dto, CancellationToken ct)
     {
-        var appointment = await context.Appointments.FindAsync(id);
+        var result = await appointmentService.UpdateAsync(id, dto, ct);
 
-        if (appointment is null)
-        {
-            return NotFound();
-        }
-
-        if (dto.StartTime is not null)
-        {
-            appointment.StartTime = dto.StartTime.Value;
-        }
-
-        if (dto.DurationInMinutes is not null)
-        {
-            appointment.DurationInMinutes = dto.DurationInMinutes.Value;
-        }
-
-        if (dto.Type is not null)
-        {
-            appointment.Type = dto.Type.Value;
-        }
-
-        if (dto.Status is not null)
-        {
-            appointment.Status = dto.Status.Value;
-        }
-
-        if (dto.PatientId is not null)
-        {
-            var patientExists = await context.Patients.AnyAsync(p => p.Id == dto.PatientId);
-            if (!patientExists)
-            {
-                return NotFound($"Patient id {dto.PatientId} not found");
-            }
-
-            appointment.PatientId = dto.PatientId.Value;
-        }
-
-        await context.SaveChangesAsync();
-        return NoContent();
+        return result.Match<IActionResult>(
+            _ => NoContent(),
+            _ => NotFound($"Appointment id {id} not found"),
+            _ => BadRequest("No fields to update"),
+            _ => NotFound($"Patient id {dto.PatientId} not found or not associated with current therapist"));
     }
 
     [HttpDelete("{id:int}")]
-    public async Task<IActionResult> DeleteAppointment(int id)
+    public async Task<IActionResult> DeleteAppointment(int id, CancellationToken ct)
     {
-        var appointment = await context.Appointments.FindAsync(id);
+        var deleted = await appointmentService.DeleteAsync(id, ct);
 
-        if (appointment is null)
+        if (!deleted)
         {
             return NotFound();
         }
-
-        context.Appointments.Remove(appointment);
-        await context.SaveChangesAsync();
 
         return NoContent();
     }

@@ -68,6 +68,12 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddScoped<AdminService>();
 
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+builder.Services.AddScoped<ITherapistService, TherapistService>();
+builder.Services.AddScoped<IAppointmentService, AppointmentService>();
+builder.Services.AddScoped<IPatientService, PatientService>();
+
 var keysFolder = new DirectoryInfo("/keys");
 builder.Services.AddDataProtection()
     .PersistKeysToFileSystem(keysFolder)

@@ -1,4 +1,5 @@
-﻿using LogopedicBackend.Constants;
+﻿using System.Security.Claims;
+using LogopedicBackend.Constants;
 using LogopedicBackend.Data;
 using LogopedicBackend.Dtos;
 using LogopedicBackend.Models;
@@ -60,10 +61,20 @@ public class PatientsController(LogopedicContext context) : ControllerBase
     [HttpPost]
     public async Task<ActionResult<PatientDto>> CreatePatient(CreatePatientDto dto)
     {
-        var therapist = await context.Therapists.FindAsync(dto.TherapistId);
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Unauthorized();
+        }
+
+        var therapist = await context.Therapists
+            .FirstOrDefaultAsync(t => t.UserId == userId);
+
+
         if (therapist is null)
         {
-            return NotFound($"Therapist id {dto.TherapistId} not found");
+            return NotFound();
         }
 
         var patient = new Patient
@@ -72,7 +83,7 @@ public class PatientsController(LogopedicContext context) : ControllerBase
             DateOfBirth = dto.DateOfBirth,
             ContactInfo = dto.ContactInfo,
             Notes = dto.Notes,
-            TherapistId = dto.TherapistId,
+            TherapistId = therapist.Id,
             Therapist = therapist
         };
 
