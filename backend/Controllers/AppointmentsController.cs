@@ -51,7 +51,6 @@ public class AppointmentsController(IAppointmentService appointmentService) : Co
         return result.Match<IActionResult>(
             _ => NoContent(),
             _ => NotFound($"Appointment id {id} not found"),
-            _ => BadRequest("No fields to update"),
             _ => NotFound($"Patient id {dto.PatientId} not found or not associated with current therapist"));
     }
 

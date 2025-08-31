@@ -6,7 +6,4 @@ public class CurrentUserService(IHttpContextAccessor httpContextAccessor) : ICur
 {
     public string? UserId =>
         httpContextAccessor.HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier);
-
-    public bool IsAuthenticated =>
-        httpContextAccessor.HttpContext?.User.Identity?.IsAuthenticated ?? false;
 }

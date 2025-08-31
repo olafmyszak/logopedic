@@ -1,7 +1,8 @@
 ﻿using LogopedicBackend.Data;
 using LogopedicBackend.Dtos;
 using LogopedicBackend.Models;
-using LogopedicBackend.Services.Results;
+using LogopedicBackend.Services.Results.Appointments;
+using LogopedicBackend.Services.Results.Common.NotFound;
 using Microsoft.EntityFrameworkCore;
 using OneOf;
 
@@ -58,7 +59,7 @@ public class AppointmentService(
     {
         var therapist = await therapistService.GetCurrentTherapistOrThrowAsync(ct);
 
-        var patient = await patientService.GetById(dto.PatientId, ct);
+        var patient = await patientService.GetByIdAsync(dto.PatientId, ct);
 
         if (patient is null)
         {
@@ -104,7 +105,7 @@ public class AppointmentService(
         return new AppointmentCreated(result);
     }
 
-    public async Task<OneOf<AppointmentUpdated, AppointmentNotFound, NoChanges, PatientNotFound>> UpdateAsync(
+    public async Task<OneOf<AppointmentUpdated, AppointmentNotFound, PatientNotFound>> UpdateAsync(
         int id,
         UpdateAppointmentDto dto,
         CancellationToken ct = default)
@@ -118,7 +119,7 @@ public class AppointmentService(
             dto.Status is null &&
             dto.PatientId is null)
         {
-            return new NoChanges();
+            return new AppointmentUpdated();
         }
 
         if (dto.PatientId is not null)
@@ -132,7 +133,7 @@ public class AppointmentService(
 
         var rows = await context.Appointments
             .Where(a => a.Id == id && a.TherapistId == therapistId)
-            .ExecuteUpdateAsync(s => s
+            .ExecuteUpdateAsync(setter => setter
                     .SetProperty(a => a.StartTime, a => dto.StartTime ?? a.StartTime)
                     .SetProperty(a => a.DurationInMinutes, a => dto.DurationInMinutes ?? a.DurationInMinutes)
                     .SetProperty(a => a.Type, a => dto.Type ?? a.Type)
