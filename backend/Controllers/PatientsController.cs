@@ -10,6 +10,8 @@ namespace LogopedicBackend.Controllers;
 [Route("api/[controller]")]
 [Authorize(Roles = AppRoles.Therapist)]
 [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+[ProducesResponseType(StatusCodes.Status403Forbidden)]
+[Produces("application/json")]
 public class PatientsController(IPatientService patientService) : ControllerBase
 {
     [HttpGet]

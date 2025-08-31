@@ -9,9 +9,13 @@ namespace LogopedicBackend.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize(Roles = AppRoles.Therapist)]
+[ProducesResponseType(StatusCodes.Status401Unauthorized)]
+[ProducesResponseType(StatusCodes.Status403Forbidden)]
+[Produces("application/json")]
 public class AppointmentsController(IAppointmentService appointmentService) : ControllerBase
 {
     [HttpGet]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<AppointmentDto>>> GetAll(CancellationToken ct)
     {
         var result = await appointmentService.GetAllAsync(ct);
@@ -19,6 +23,8 @@ public class AppointmentsController(IAppointmentService appointmentService) : Co
     }
 
     [HttpGet("{id:int}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<AppointmentDto>> GetById(int id, CancellationToken ct)
     {
         var appointment = await appointmentService.GetByIdAsync(id, ct);
@@ -32,6 +38,9 @@ public class AppointmentsController(IAppointmentService appointmentService) : Co
     }
 
     [HttpPost]
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<AppointmentDto>> Create(CreateAppointmentDto dto, CancellationToken ct)
     {
         var result = await appointmentService.CreateAsync(dto, ct);
@@ -44,6 +53,8 @@ public class AppointmentsController(IAppointmentService appointmentService) : Co
     }
 
     [HttpPatch("{id:int}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Patch(int id, [FromBody] UpdateAppointmentDto dto, CancellationToken ct)
     {
         var result = await appointmentService.UpdateAsync(id, dto, ct);
@@ -55,6 +66,8 @@ public class AppointmentsController(IAppointmentService appointmentService) : Co
     }
 
     [HttpDelete("{id:int}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteAppointment(int id, CancellationToken ct)
     {
         var deleted = await appointmentService.DeleteAsync(id, ct);

@@ -9,6 +9,7 @@ namespace LogopedicBackend.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Produces("application/json")]
 public class AccountController(
     LogopedicContext context,
     UserManager<User> userManager,
@@ -16,6 +17,8 @@ public class AccountController(
     : ControllerBase
 {
     [HttpPost("register")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> RegisterAsync(RegisterDto dto)
     {
         var user = new User
@@ -47,6 +50,9 @@ public class AccountController(
     }
 
     [HttpPost("login")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> LoginAsync(LoginDto dto)
     {
         var user = await userManager.FindByEmailAsync(dto.Email);
@@ -65,6 +71,8 @@ public class AccountController(
     }
 
     [HttpPost("logout")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> LogoutAsync()
     {
         await signInManager.SignOutAsync();

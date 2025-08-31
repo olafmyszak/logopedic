@@ -4,6 +4,7 @@ using LogopedicBackend.Exceptions;
 using LogopedicBackend.Extensions;
 using LogopedicBackend.Models;
 using LogopedicBackend.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -26,7 +27,7 @@ builder.Services.AddAuthentication().AddCookie(
         };
         options.Events.OnRedirectToAccessDenied = ctx =>
         {
-            ctx.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
             return Task.CompletedTask;
         };
     });
@@ -37,6 +38,8 @@ builder.Services.AddIdentityCore<User>(options =>
         options.Password.RequireDigit = false;
         options.Password.RequireLowercase = false;
         options.Password.RequireUppercase = false;
+        options.Password.RequiredLength = 8;
+        options.Password.RequiredLength = 8;
     })
     .AddSignInManager()
     .AddRoles<IdentityRole>()

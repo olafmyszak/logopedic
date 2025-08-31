@@ -3,14 +3,29 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace LogopedicBackend.Controllers;
 
+public record TokenResponse(string Token);
+
 [ApiController]
 [Route("api/[controller]")]
+[Produces("application/json")]
 public class AntiforgeryController(IAntiforgery antiforgery) : ControllerBase
 {
     [HttpGet("token")]
-    public IActionResult GetToken()
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public ActionResult<TokenResponse> GetToken()
     {
         var tokens = antiforgery.GetAndStoreTokens(HttpContext);
-        return Ok(new { token = tokens.RequestToken });
+
+        if (tokens.RequestToken is null)
+        {
+            return Problem(
+                title: "Antiforgery token unavailable",
+                detail: "No request token could be generated. Check antiforgery configuration.",
+                statusCode: StatusCodes.Status500InternalServerError
+            );
+        }
+
+        return Ok(new TokenResponse(tokens.RequestToken));
     }
 }
