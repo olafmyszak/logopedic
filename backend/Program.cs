@@ -4,7 +4,6 @@ using LogopedicBackend.Exceptions;
 using LogopedicBackend.Extensions;
 using LogopedicBackend.Models;
 using LogopedicBackend.Services;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -89,6 +88,8 @@ builder.Services.AddDataProtection()
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
+    options.SupportNonNullableReferenceTypes();
+
     options.AddSecurityDefinition("X-XSRF-TOKEN", new OpenApiSecurityScheme
     {
         Description = "Anti-forgery token",
