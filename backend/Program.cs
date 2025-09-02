@@ -38,7 +38,6 @@ builder.Services.AddIdentityCore<User>(options =>
         options.Password.RequireLowercase = false;
         options.Password.RequireUppercase = false;
         options.Password.RequiredLength = 8;
-        options.Password.RequiredLength = 8;
     })
     .AddSignInManager()
     .AddRoles<IdentityRole>()
