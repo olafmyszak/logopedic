@@ -16,7 +16,7 @@ public class PatientService(LogopedicContext context, ITherapistService therapis
 
         return await context.Patients
             .AsNoTracking()
-            .AnyAsync(p => p.Id == patientId && p.TherapistId == therapistId, cancellationToken: ct);
+            .AnyAsync(p => p.Id == patientId && p.TherapistId == therapistId, ct);
     }
 
     public async Task<Patient?> GetByIdAsync(int patientId, CancellationToken ct = default)
@@ -24,7 +24,7 @@ public class PatientService(LogopedicContext context, ITherapistService therapis
         var therapistId = await therapistService.GetCurrentTherapistIdOrThrowAsync(ct);
 
         return await context.Patients
-            .SingleOrDefaultAsync(p => p.Id == patientId && p.TherapistId == therapistId, cancellationToken: ct);
+            .SingleOrDefaultAsync(p => p.Id == patientId && p.TherapistId == therapistId, ct);
     }
 
     public async Task<PatientDto?> GetPatientDtoByIdAsync(int patientId, CancellationToken ct = default)

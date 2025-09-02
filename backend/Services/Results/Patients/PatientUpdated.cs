@@ -1,3 +1,3 @@
 ﻿namespace LogopedicBackend.Services.Results.Patients;
 
-public record PatientUpdated();
+public record PatientUpdated;
