@@ -1,4 +1,4 @@
-﻿using LogopedicBackend.Models.Enums;
+﻿using LogopedicBackend.Enums;
 
 namespace LogopedicBackend.Dtos;
 
@@ -8,6 +8,5 @@ public class CreateAppointmentDto
     public required int DurationInMinutes { get; set; }
     public required AppointmentType Type { get; set; }
     public required AppointmentStatus Status { get; set; }
-    public required int TherapistId { get; set; }
     public required int PatientId { get; set; }
 }

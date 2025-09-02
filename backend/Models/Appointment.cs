@@ -1,4 +1,4 @@
-﻿using LogopedicBackend.Models.Enums;
+﻿using LogopedicBackend.Enums;
 
 namespace LogopedicBackend.Models;
 
@@ -11,8 +11,8 @@ public class Appointment
     public required AppointmentStatus Status { get; set; }
 
     public required int TherapistId { get; set; }
-    public Therapist Therapist { get; set; }
+    public required Therapist Therapist { get; set; }
 
     public required int PatientId { get; set; }
-    public Patient Patient { get; set; }
+    public required Patient Patient { get; set; }
 }

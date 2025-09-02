@@ -79,7 +79,9 @@ $RECYCLE.BIN/
 # === Environment / Secrets ===
 .env
 .env.*
+*.env
 secrets.json
+aspnet-keys/
 
 # === Others ===
 *.tmp

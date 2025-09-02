@@ -1,4 +1,4 @@
-﻿namespace LogopedicBackend.Models.Enums;
+﻿namespace LogopedicBackend.Enums;
 
 public enum AppointmentStatus
 {

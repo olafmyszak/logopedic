@@ -1,138 +1,73 @@
-﻿using LogopedicBackend.Data;
+﻿using LogopedicBackend.Constants;
 using LogopedicBackend.Dtos;
-using LogopedicBackend.Models;
+using LogopedicBackend.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace LogopedicBackend.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class PatientsController(LogopedicContext context) : ControllerBase
+[Authorize(Roles = AppRoles.Therapist)]
+[ProducesResponseType(StatusCodes.Status401Unauthorized)]
+[ProducesResponseType(StatusCodes.Status403Forbidden)]
+[Produces("application/json")]
+public class PatientsController(IPatientService patientService) : ControllerBase
 {
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<PatientDto>>> GetAllPatients()
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<PatientDto>>> GetAllPatients(CancellationToken ct)
     {
-        var patients = await context.Patients.ToListAsync();
-
-        if (patients.Count == 0)
-        {
-            return NotFound();
-        }
-
-        var result = patients.Select(p => new PatientDto
-        {
-            Id = p.Id,
-            FullName = p.FullName,
-            DateOfBirth = p.DateOfBirth,
-            ContactInfo = p.ContactInfo,
-            Notes = p.Notes,
-        }).ToList();
-
+        var result = await patientService.GetAllAsync(ct);
         return Ok(result);
     }
 
     [HttpGet("{id:int}")]
-    public async Task<ActionResult<PatientDto>> GetPatientById(int id)
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<PatientDto>> GetPatientById(int id, CancellationToken ct)
     {
-        var patient = await context.Patients.FindAsync(id);
+        var patient = await patientService.GetPatientDtoByIdAsync(id, ct);
 
         if (patient is null)
         {
             return NotFound();
         }
 
-        var result = new PatientDto
-        {
-            Id = patient.Id,
-            FullName = patient.FullName,
-            DateOfBirth = patient.DateOfBirth,
-            ContactInfo = patient.ContactInfo,
-            Notes = patient.Notes
-        };
-
-        return Ok(result);
+        return Ok(patient);
     }
 
     [HttpPost]
-    public async Task<ActionResult<PatientDto>> CreatePatient(CreatePatientDto dto)
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    public async Task<ActionResult<PatientDto>> CreatePatient(CreatePatientDto dto, CancellationToken ct)
     {
-        var therapistExists = await context.Therapists.AnyAsync(t => t.Id == dto.TherapistId);
-        if (!therapistExists)
-        {
-            return NotFound($"Therapist id {dto.TherapistId} not found");
-        }
-
-        var patient = new Patient
-        {
-            FullName = dto.FullName,
-            DateOfBirth = dto.DateOfBirth,
-            ContactInfo = dto.ContactInfo,
-            Notes = dto.Notes,
-            TherapistId = dto.TherapistId
-        };
-
-        context.Patients.Add(patient);
-        await context.SaveChangesAsync();
-
-        var result = new PatientDto
-        {
-            Id = patient.Id,
-            FullName = patient.FullName,
-            DateOfBirth = patient.DateOfBirth,
-            ContactInfo = patient.ContactInfo,
-            Notes = patient.Notes
-        };
-
-        return CreatedAtAction(nameof(GetPatientById), new { id = patient.Id }, result);
+        var result = await patientService.CreateAsync(dto, ct);
+        return CreatedAtAction(nameof(GetPatientById), new { id = result.Patient.Id }, result.Patient);
     }
 
     [HttpPatch("{id:int}")]
-    public async Task<IActionResult> UpdatePatient(int id, UpdatePatientDto dto)
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdatePatient(int id, UpdatePatientDto dto, CancellationToken ct)
     {
-        var patient = await context.Patients.FindAsync(id);
+        var result = await patientService.UpdateAsync(id, dto, ct);
 
-        if (patient is null)
-        {
-            return NotFound();
-        }
-
-        if (dto.FullName is not null)
-        {
-            patient.FullName = dto.FullName;
-        }
-
-        if (dto.DateOfBirth is not null)
-        {
-            patient.DateOfBirth = dto.DateOfBirth.Value;
-        }
-
-        if (dto.ContactInfo is not null)
-        {
-            patient.ContactInfo = dto.ContactInfo;
-        }
-
-        if (dto.Notes is not null)
-        {
-            patient.Notes = dto.Notes;
-        }
-
-        await context.SaveChangesAsync();
-        return NoContent();
+        return result.Match<IActionResult>(
+            _ => NoContent(),
+            _ => NotFound());
     }
 
     [HttpDelete("{id:int}")]
-    public async Task<IActionResult> DeletePatient(int id)
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeletePatient(int id, CancellationToken ct)
     {
-        var patient = await context.Patients.FindAsync(id);
+        var deleted = await patientService.DeleteAsync(id, ct);
 
-        if (patient is null)
+        if (!deleted)
         {
             return NotFound();
         }
-
-        context.Patients.Remove(patient);
-        await context.SaveChangesAsync();
 
         return NoContent();
     }
