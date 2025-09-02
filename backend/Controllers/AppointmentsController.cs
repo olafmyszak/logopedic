@@ -9,6 +9,7 @@ namespace LogopedicBackend.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize(Roles = AppRoles.Therapist)]
+[ProducesResponseType(StatusCodes.Status400BadRequest)]
 [ProducesResponseType(StatusCodes.Status401Unauthorized)]
 [ProducesResponseType(StatusCodes.Status403Forbidden)]
 [Produces("application/json")]
@@ -16,10 +17,32 @@ public class AppointmentsController(IAppointmentService appointmentService) : Co
 {
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<ActionResult<IEnumerable<AppointmentDto>>> GetAll(CancellationToken ct)
+    public async Task<ActionResult<PagedResultDto<AppointmentDto>>> GetAll([FromQuery] AppointmentQueryParameters query,
+        CancellationToken ct)
     {
-        var result = await appointmentService.GetAllAsync(ct);
-        return Ok(result);
+        var result = await appointmentService.QueryAsync(query, ct);
+
+        return result.Match<ActionResult<PagedResultDto<AppointmentDto>>>(
+            pagedResult => Ok(pagedResult),
+            invalidRange => Problem(
+                $"The 'from' value ({invalidRange.From:u}) must be less than or equal to the 'to' value ({invalidRange.To:u}).",
+                HttpContext.Request.Path,
+                StatusCodes.Status400BadRequest,
+                "Invalid date range"),
+            pageSizeError => ValidationProblem(
+                new ValidationProblemDetails(new Dictionary<string, string[]>
+                {
+                    ["pageSize"] =
+                    [
+                        $"Requested page size {pageSizeError.Requested} is not in the required range: [{pageSizeError.Min}. {pageSizeError.Max}"
+                    ]
+                })
+                {
+                    Title = "Invalid page size",
+                    Status = StatusCodes.Status400BadRequest,
+                    Instance = HttpContext.Request.Path
+                })
+        );
     }
 
     [HttpGet("{id:int}")]

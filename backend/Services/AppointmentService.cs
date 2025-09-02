@@ -1,8 +1,10 @@
-﻿using LogopedicBackend.Data;
+﻿using System.Linq.Expressions;
+using LogopedicBackend.Data;
 using LogopedicBackend.Dtos;
 using LogopedicBackend.Models;
 using LogopedicBackend.Services.Results.Appointments;
 using LogopedicBackend.Services.Results.Common.NotFound;
+using LogopedicBackend.Services.Results.Common.Paging;
 using Microsoft.EntityFrameworkCore;
 using OneOf;
 
@@ -51,6 +53,78 @@ public class AppointmentService(
             .ToListAsync(ct);
 
         return appointments;
+    }
+
+    public async Task<OneOf<PagedResultDto<AppointmentDto>, InvalidDateRangeError, InvalidPageSizeError>> QueryAsync(
+        AppointmentQueryParameters query, CancellationToken ct = default)
+    {
+        var now = DateTimeOffset.UtcNow;
+        var from = (query.From ?? now.Date).ToUniversalTime();
+        var to = (query.To ?? now.AddMonths(1)).ToUniversalTime();
+
+        if (from > to)
+        {
+            return new InvalidDateRangeError(from, to);
+        }
+
+        var pageNumber = Math.Max(1, query.PageNumber);
+
+        const int minPageSize = 1;
+        const int maxPageSize = 200;
+
+        if (query.PageSize is > maxPageSize or < minPageSize)
+        {
+            return new InvalidPageSizeError(query.PageSize, minPageSize, maxPageSize);
+        }
+
+        var pageSize = query.PageSize;
+
+        var therapistId = await therapistService.GetCurrentTherapistIdOrThrowAsync(ct);
+
+        var baseQuery = context.Appointments
+            .AsNoTracking()
+            .Where(a => a.TherapistId == therapistId && a.StartTime >= from && a.StartTime < to);
+
+        if (query.PatientId is not null)
+        {
+            baseQuery = baseQuery.Where(a => a.PatientId == query.PatientId.Value);
+        }
+
+        if (query.Status?.Any() == true)
+        {
+            baseQuery = baseQuery.Where(a => query.Status.Contains(a.Status));
+        }
+
+        if (query.Type?.Any() == true)
+        {
+            baseQuery = baseQuery.Where(a => query.Type.Contains(a.Type));
+        }
+
+        baseQuery = ApplySorting(baseQuery, query.Sort);
+
+        var totalCount = await baseQuery.CountAsync(ct);
+        var skip = (pageNumber - 1) * pageSize;
+
+        var items = await baseQuery
+            .Skip(skip)
+            .Take(pageSize)
+            .Select(a => new AppointmentDto
+            {
+                Id = a.Id,
+                StartTime = a.StartTime,
+                DurationInMinutes = a.DurationInMinutes,
+                Type = a.Type,
+                Status = a.Status
+            })
+            .ToListAsync(ct);
+
+        return new PagedResultDto<AppointmentDto>
+        {
+            Items = items,
+            TotalCount = totalCount,
+            PageNumber = pageNumber,
+            PageSize = pageSize
+        };
     }
 
     public async Task<OneOf<AppointmentCreated, PatientNotFound, TimeConflict>> CreateAsync(
@@ -158,5 +232,49 @@ public class AppointmentService(
             .ExecuteDeleteAsync(ct);
 
         return rows > 0;
+    }
+
+    private static IQueryable<Appointment> ApplySorting(IQueryable<Appointment> baseQuery, string? sort)
+    {
+        var clauses = (sort ?? "startTime:asc")
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        var map = new Dictionary<string, Expression<Func<Appointment, object?>>>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["starttime"] = a => a.StartTime,
+            ["id"] = a => a.Id,
+            ["duration"] = a => a.DurationInMinutes,
+            ["type"] = a => a.Type,
+            ["status"] = a => a.Status
+        };
+
+        IOrderedQueryable<Appointment>? ordered = null;
+
+        foreach (var clause in clauses)
+        {
+            var parts = clause.Split(':', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            var field = parts[0];
+            var direction = parts.Length > 1 ? parts[1] : "asc";
+
+            if (!map.TryGetValue(field, out var selector))
+            {
+                continue;
+            }
+
+            if (ordered is null)
+            {
+                ordered = direction.Equals("desc", StringComparison.OrdinalIgnoreCase)
+                    ? baseQuery.OrderByDescending(selector)
+                    : baseQuery.OrderBy(selector);
+            }
+            else
+            {
+                ordered = direction.Equals("desc", StringComparison.OrdinalIgnoreCase)
+                    ? ordered.ThenByDescending(selector)
+                    : ordered.ThenBy(selector);
+            }
+        }
+
+        return ordered ?? baseQuery.OrderBy(a => a.StartTime).ThenBy(a => a.Id);
     }
 }
