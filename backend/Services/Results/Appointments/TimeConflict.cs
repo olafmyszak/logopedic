@@ -1,3 +1,8 @@
-﻿namespace LogopedicBackend.Services.Results.Appointments;
+﻿using LogopedicBackend.Dtos;
 
-public record TimeConflict;
+namespace LogopedicBackend.Services.Results.Appointments;
+
+public record TimeConflict(
+    DateTimeOffset RequestedStart,
+    DateTimeOffset RequestedEnd,
+    IReadOnlyList<AppointmentDto> Conflicts);

@@ -12,7 +12,6 @@ namespace LogopedicBackend.Controllers;
 [ProducesResponseType(StatusCodes.Status400BadRequest)]
 [ProducesResponseType(StatusCodes.Status401Unauthorized)]
 [ProducesResponseType(StatusCodes.Status403Forbidden)]
-[Produces("application/json")]
 public class AppointmentsController(IAppointmentService appointmentService) : ControllerBase
 {
     [HttpGet]
@@ -24,11 +23,19 @@ public class AppointmentsController(IAppointmentService appointmentService) : Co
 
         return result.Match<ActionResult<PagedResultDto<AppointmentDto>>>(
             pagedResult => Ok(pagedResult),
-            invalidRange => Problem(
-                $"The 'from' value ({invalidRange.From:u}) must be less than or equal to the 'to' value ({invalidRange.To:u}).",
-                HttpContext.Request.Path,
-                StatusCodes.Status400BadRequest,
-                "Invalid date range"),
+            invalidDateRangeError => ValidationProblem(
+                new ValidationProblemDetails(new Dictionary<string, string[]>
+                {
+                    ["dateRange"] =
+                    [
+                        $"The 'from' value ({invalidDateRangeError.From:u}) must be less than or equal to the 'to' value ({invalidDateRangeError.To:u})."
+                    ]
+                })
+                {
+                    Title = "Invalid date range",
+                    Status = StatusCodes.Status400BadRequest,
+                    Instance = HttpContext.Request.Path
+                }),
             pageSizeError => ValidationProblem(
                 new ValidationProblemDetails(new Dictionary<string, string[]>
                 {
@@ -54,7 +61,12 @@ public class AppointmentsController(IAppointmentService appointmentService) : Co
 
         if (appointment is null)
         {
-            return NotFound();
+            return Problem(
+                $"Appointment with id {id} does not exist or does not belong to the current user",
+                HttpContext.Request.Path,
+                StatusCodes.Status404NotFound,
+                "Appointment not found"
+            );
         }
 
         return Ok(appointment);
@@ -70,8 +82,22 @@ public class AppointmentsController(IAppointmentService appointmentService) : Co
 
         return result.Match<ActionResult<AppointmentDto>>(
             created => CreatedAtAction(nameof(GetById), new { id = created.Appointment.Id }, created.Appointment),
-            _ => NotFound($"Patient id {dto.PatientId} not found or not associated with current therapist"),
-            _ => Conflict("Requested time slot is already taken")
+            patientNotFound => Problem(
+                $"Patient with id {patientNotFound.PatientId} does not exist or does not belong to the current user",
+                HttpContext.Request.Path,
+                StatusCodes.Status404NotFound,
+                "Patient not found"
+            ),
+            timeConflict => Problem(
+                $"The requested time {timeConflict.RequestedStart:t}–{timeConflict.RequestedEnd:t} conflicts with {timeConflict.Conflicts.Count} existing appointment(s).",
+                HttpContext.Request.Path,
+                StatusCodes.Status409Conflict,
+                "Requested time slot conflicts with existing appointments",
+                extensions: new Dictionary<string, object?>
+                {
+                    ["conflicts"] = timeConflict.Conflicts
+                }
+            )
         );
     }
 
@@ -84,8 +110,17 @@ public class AppointmentsController(IAppointmentService appointmentService) : Co
 
         return result.Match<IActionResult>(
             _ => NoContent(),
-            _ => NotFound($"Appointment id {id} not found"),
-            _ => NotFound($"Patient id {dto.PatientId} not found or not associated with current therapist"));
+            appointmentNotFound => Problem(
+                $"Appointment with id {appointmentNotFound.AppointmentId} does not exist or does not belong to the current user",
+                HttpContext.Request.Path,
+                StatusCodes.Status404NotFound,
+                "Appointment not found"
+            ),
+            patientNotFound => Problem(
+                $"Patient with id {patientNotFound.PatientId} does not exist or does not belong to the current user",
+                HttpContext.Request.Path,
+                StatusCodes.Status404NotFound,
+                "Patient not found"));
     }
 
     [HttpDelete("{id:int}")]
@@ -97,7 +132,12 @@ public class AppointmentsController(IAppointmentService appointmentService) : Co
 
         if (!deleted)
         {
-            return NotFound();
+            return Problem(
+                $"Appointment with id {id} does not exist or does not belong to the current user",
+                HttpContext.Request.Path,
+                StatusCodes.Status404NotFound,
+                "Appointment not found"
+            );
         }
 
         return NoContent();

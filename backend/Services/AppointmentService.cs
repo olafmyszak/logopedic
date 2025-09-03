@@ -25,6 +25,7 @@ public class AppointmentService(
             .Select(a => new AppointmentDto
             {
                 Id = a.Id,
+                PatientId = a.PatientId,
                 StartTime = a.StartTime,
                 DurationInMinutes = a.DurationInMinutes,
                 Type = a.Type,
@@ -45,6 +46,7 @@ public class AppointmentService(
             .Select(a => new AppointmentDto
             {
                 Id = a.Id,
+                PatientId = a.PatientId,
                 StartTime = a.StartTime,
                 DurationInMinutes = a.DurationInMinutes,
                 Type = a.Type,
@@ -111,6 +113,7 @@ public class AppointmentService(
             .Select(a => new AppointmentDto
             {
                 Id = a.Id,
+                PatientId = a.PatientId,
                 StartTime = a.StartTime,
                 DurationInMinutes = a.DurationInMinutes,
                 Type = a.Type,
@@ -137,19 +140,30 @@ public class AppointmentService(
 
         if (patient is null)
         {
-            return new PatientNotFound();
+            return new PatientNotFound(dto.PatientId);
         }
 
         // Check for overlapping appointments
         var endTime = dto.StartTime.AddMinutes(dto.DurationInMinutes);
-        var conflict = await context.Appointments
+        var conflictingAppointments = await context.Appointments
             .AsNoTracking()
-            .Where(a => a.TherapistId == therapist.Id)
-            .AnyAsync(a => a.StartTime < endTime && a.StartTime.AddMinutes(a.DurationInMinutes) > dto.StartTime, ct);
+            .Where(a => a.TherapistId == therapist.Id &&
+                        a.StartTime < endTime &&
+                        a.StartTime.AddMinutes(a.DurationInMinutes) > dto.StartTime)
+            .Select(a => new AppointmentDto
+            {
+                Id = a.Id,
+                PatientId = patient.Id,
+                StartTime = a.StartTime,
+                DurationInMinutes = a.DurationInMinutes,
+                Type = a.Type,
+                Status = a.Status
+            })
+            .ToListAsync(ct);
 
-        if (conflict)
+        if (conflictingAppointments.Count != 0)
         {
-            return new TimeConflict();
+            return new TimeConflict(dto.StartTime, endTime, conflictingAppointments);
         }
 
         var appointment = new Appointment
@@ -170,6 +184,7 @@ public class AppointmentService(
         var result = new AppointmentDto
         {
             Id = appointment.Id,
+            PatientId = patient.Id,
             StartTime = appointment.StartTime,
             DurationInMinutes = appointment.DurationInMinutes,
             Type = appointment.Type,
@@ -201,7 +216,7 @@ public class AppointmentService(
             var patientExists = await patientService.ExistsForTherapistAsync(dto.PatientId.Value, ct);
             if (!patientExists)
             {
-                return new PatientNotFound();
+                return new PatientNotFound(dto.PatientId.Value);
             }
         }
 
@@ -217,7 +232,7 @@ public class AppointmentService(
 
         if (rows == 0)
         {
-            return new AppointmentNotFound();
+            return new AppointmentNotFound(id);
         }
 
         return new AppointmentUpdated();

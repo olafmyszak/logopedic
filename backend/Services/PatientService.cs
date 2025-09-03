@@ -112,7 +112,7 @@ public class PatientService(LogopedicContext context, ITherapistService therapis
 
         if (rows == 0)
         {
-            return new PatientNotFound();
+            return new PatientNotFound(id);
         }
 
         return new PatientUpdated();
