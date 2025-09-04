@@ -41,7 +41,7 @@ public class AppointmentsController(IAppointmentService appointmentService) : Co
                 {
                     ["pageSize"] =
                     [
-                        $"Requested page size {pageSizeError.Requested} is not in the required range: [{pageSizeError.Min}. {pageSizeError.Max}"
+                        $"Requested page size {pageSizeError.Requested} is not in the required range: [{pageSizeError.Min}, {pageSizeError.Max}]"
                     ]
                 })
                 {

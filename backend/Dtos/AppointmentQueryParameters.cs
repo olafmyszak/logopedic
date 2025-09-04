@@ -13,7 +13,7 @@ public class AppointmentQueryParameters
     public int PageSize { get; init; } = 20;
 
     // Sorting: comma-separated "field:dir" pairs, e.g. "startTime:asc,id:desc"
-    public string? Sort { get; init; } = "startTime:asc";
+    public string Sort { get; init; } = "startTime:asc";
 
     // Filtering
     public int? PatientId { get; init; }

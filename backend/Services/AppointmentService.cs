@@ -69,7 +69,7 @@ public class AppointmentService(
             return new InvalidDateRangeError(from, to);
         }
 
-        var pageNumber = Math.Max(1, query.PageNumber);
+        var pageNumber = query.PageNumber;
 
         const int minPageSize = 1;
         const int maxPageSize = 200;
@@ -249,10 +249,14 @@ public class AppointmentService(
         return rows > 0;
     }
 
-    private static IQueryable<Appointment> ApplySorting(IQueryable<Appointment> baseQuery, string? sort)
+    private static IQueryable<Appointment> ApplySorting(IQueryable<Appointment> baseQuery, string sort)
     {
-        var clauses = (sort ?? "startTime:asc")
-            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (string.IsNullOrWhiteSpace(sort))
+        {
+            sort = "startTime:asc";
+        }
+
+        var clauses = sort.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
         var map = new Dictionary<string, Expression<Func<Appointment, object?>>>(StringComparer.OrdinalIgnoreCase)
         {
@@ -271,6 +275,7 @@ public class AppointmentService(
             var field = parts[0];
             var direction = parts.Length > 1 ? parts[1] : "asc";
 
+            // Skip fields which don't correspond to allowed sorting fields
             if (!map.TryGetValue(field, out var selector))
             {
                 continue;
