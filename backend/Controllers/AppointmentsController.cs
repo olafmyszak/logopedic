@@ -97,16 +97,28 @@ public class AppointmentsController(IAppointmentService appointmentService) : Co
                 {
                     ["conflicts"] = timeConflict.Conflicts
                 }
-            )
-        );
+            ),
+            durationLessThanZero => ValidationProblem(
+                new ValidationProblemDetails(new Dictionary<string, string[]>
+                {
+                    ["duration"] =
+                    [
+                        $"The 'durationInMinutes' value ({durationLessThanZero.Duration}) must be bigger than zero."
+                    ]
+                })
+                {
+                    Title = "Duration is zero or less",
+                    Status = StatusCodes.Status400BadRequest,
+                    Instance = HttpContext.Request.Path
+                }));
     }
 
     [HttpPatch("{id:int}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Patch(int id, [FromBody] UpdateAppointmentDto dto, CancellationToken ct)
+    public async Task<IActionResult> Patch(int id, [FromBody] PatchAppointmentDto dto, CancellationToken ct)
     {
-        var result = await appointmentService.UpdateAsync(id, dto, ct);
+        var result = await appointmentService.PatchAsync(id, dto, ct);
 
         return result.Match<IActionResult>(
             _ => NoContent(),
@@ -120,7 +132,20 @@ public class AppointmentsController(IAppointmentService appointmentService) : Co
                 $"Patient with id {patientNotFound.PatientId} does not exist or does not belong to the current user",
                 HttpContext.Request.Path,
                 StatusCodes.Status404NotFound,
-                "Patient not found"));
+                "Patient not found"),
+            durationLessThanZero => ValidationProblem(
+                new ValidationProblemDetails(new Dictionary<string, string[]>
+                {
+                    ["duration"] =
+                    [
+                        $"The 'durationInMinutes' value ({durationLessThanZero.Duration}) must be bigger than zero."
+                    ]
+                })
+                {
+                    Title = "Duration is zero or less",
+                    Status = StatusCodes.Status400BadRequest,
+                    Instance = HttpContext.Request.Path
+                }));
     }
 
     [HttpDelete("{id:int}")]

@@ -12,6 +12,14 @@ namespace LogopedicBackend.Services;
 
 public class PatientService(LogopedicContext context, ITherapistService therapistService) : IPatientService
 {
+    private static readonly Dictionary<string, Expression<Func<Patient, object?>>> _sortMap =
+        new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["fullname"] = p => p.FullName,
+            ["id"] = p => p.Id,
+            ["contactinfo"] = p => p.ContactInfo
+        };
+
     public async Task<bool> ExistsForTherapistAsync(int patientId, CancellationToken ct)
     {
         var therapistId = await therapistService.GetCurrentTherapistIdOrThrowAsync(ct);
@@ -188,14 +196,6 @@ public class PatientService(LogopedicContext context, ITherapistService therapis
 
         return rows > 0;
     }
-
-    private static readonly Dictionary<string, Expression<Func<Patient, object?>>> _sortMap =
-        new(StringComparer.OrdinalIgnoreCase)
-        {
-            ["fullname"] = p => p.FullName,
-            ["id"] = p => p.Id,
-            ["contactinfo"] = p => p.ContactInfo
-        };
 
     private static IQueryable<Patient> ApplySorting(IQueryable<Patient> baseQuery, string sort)
     {

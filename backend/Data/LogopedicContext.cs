@@ -40,7 +40,7 @@ public class LogopedicContext(DbContextOptions<LogopedicContext> options)
             entityBuilder.Property(p => p.SearchText)
                 .HasComputedColumnSql(
                     "lower(unaccent(coalesce(FullName,'') || ' ' || coalesce(ContactInfo,''))",
-                    stored: true);
+                    true);
 
             entityBuilder.HasIndex(p => p.FullName);
             entityBuilder.HasIndex(p => p.ContactInfo);

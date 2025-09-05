@@ -14,15 +14,13 @@ public interface IAppointmentService
     Task<OneOf<PagedResultDto<AppointmentDto>, InvalidDateRangeError, InvalidPageSizeError>> QueryAsync(
         AppointmentQueryParameters query, CancellationToken ct = default);
 
-    // TODO: Validate dto
-    Task<OneOf<AppointmentCreated, PatientNotFound, TimeConflict>> CreateAsync(
+    Task<OneOf<AppointmentCreated, PatientNotFound, TimeConflict, DurationZeroOrLess>> CreateAsync(
         CreateAppointmentDto dto,
         CancellationToken ct = default);
 
-    // TODO: Validate dto
-    Task<OneOf<AppointmentUpdated, AppointmentNotFound, PatientNotFound>> UpdateAsync(
+    Task<OneOf<AppointmentUpdated, AppointmentNotFound, PatientNotFound, DurationZeroOrLess>> PatchAsync(
         int id,
-        UpdateAppointmentDto dto,
+        PatchAppointmentDto dto,
         CancellationToken ct = default);
 
     Task<bool> DeleteAsync(int id, CancellationToken ct = default);

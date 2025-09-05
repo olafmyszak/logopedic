@@ -1,6 +1,7 @@
 ﻿using System.Linq.Expressions;
 using LogopedicBackend.Data;
 using LogopedicBackend.Dtos;
+using LogopedicBackend.Enums;
 using LogopedicBackend.Models;
 using LogopedicBackend.Services.Results.Appointments;
 using LogopedicBackend.Services.Results.Common.NotFound;
@@ -130,10 +131,15 @@ public class AppointmentService(
         };
     }
 
-    public async Task<OneOf<AppointmentCreated, PatientNotFound, TimeConflict>> CreateAsync(
+    public async Task<OneOf<AppointmentCreated, PatientNotFound, TimeConflict, DurationZeroOrLess>> CreateAsync(
         CreateAppointmentDto dto,
         CancellationToken ct = default)
     {
+        if (dto.DurationInMinutes <= 0)
+        {
+            return new DurationZeroOrLess(dto.DurationInMinutes);
+        }
+
         var therapist = await therapistService.GetCurrentTherapistOrThrowAsync(ct);
 
         var patient = await patientService.GetByIdAsync(dto.PatientId, ct);
@@ -171,7 +177,7 @@ public class AppointmentService(
             StartTime = dto.StartTime,
             DurationInMinutes = dto.DurationInMinutes,
             Type = dto.Type,
-            Status = dto.Status,
+            Status = AppointmentStatus.Scheduled,
             TherapistId = therapist.Id,
             Therapist = therapist,
             PatientId = dto.PatientId,
@@ -194,9 +200,9 @@ public class AppointmentService(
         return new AppointmentCreated(result);
     }
 
-    public async Task<OneOf<AppointmentUpdated, AppointmentNotFound, PatientNotFound>> UpdateAsync(
+    public async Task<OneOf<AppointmentUpdated, AppointmentNotFound, PatientNotFound, DurationZeroOrLess>> PatchAsync(
         int id,
-        UpdateAppointmentDto dto,
+        PatchAppointmentDto dto,
         CancellationToken ct = default)
     {
         var therapistId = await therapistService.GetCurrentTherapistIdOrThrowAsync(ct);
@@ -209,6 +215,14 @@ public class AppointmentService(
             dto.PatientId is null)
         {
             return new AppointmentUpdated();
+        }
+
+        if (dto.DurationInMinutes is not null)
+        {
+            if (dto.DurationInMinutes.Value <= 0)
+            {
+                return new DurationZeroOrLess(dto.DurationInMinutes.Value);
+            }
         }
 
         if (dto.PatientId is not null)

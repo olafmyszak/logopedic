@@ -2,7 +2,7 @@
 
 namespace LogopedicBackend.Dtos;
 
-public class UpdateAppointmentDto
+public class PatchAppointmentDto
 {
     public DateTimeOffset? StartTime { get; set; }
     public int? DurationInMinutes { get; set; }

@@ -49,7 +49,12 @@ public class PatientsController(IPatientService patientService) : ControllerBase
 
         if (patient is null)
         {
-            return NotFound();
+            return Problem(
+                $"Patient with id {id} does not exist or does not belong to the current user",
+                HttpContext.Request.Path,
+                StatusCodes.Status404NotFound,
+                "Patient not found"
+            );
         }
 
         return Ok(patient);
@@ -72,7 +77,12 @@ public class PatientsController(IPatientService patientService) : ControllerBase
 
         return result.Match<IActionResult>(
             _ => NoContent(),
-            _ => NotFound());
+            patientNotFound => Problem(
+                $"Patient with id {patientNotFound.PatientId} does not exist or does not belong to the current user",
+                HttpContext.Request.Path,
+                StatusCodes.Status404NotFound,
+                "Patient not found"
+            ));
     }
 
     [HttpDelete("{id:int}")]
@@ -84,7 +94,12 @@ public class PatientsController(IPatientService patientService) : ControllerBase
 
         if (!deleted)
         {
-            return NotFound();
+            return Problem(
+                $"Patient with id {id} does not exist or does not belong to the current user",
+                HttpContext.Request.Path,
+                StatusCodes.Status404NotFound,
+                "Patient not found"
+            );
         }
 
         return NoContent();
