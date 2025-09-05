@@ -1,6 +1,7 @@
 ﻿using LogopedicBackend.Dtos;
 using LogopedicBackend.Models;
 using LogopedicBackend.Services.Results.Common.NotFound;
+using LogopedicBackend.Services.Results.Common.Paging;
 using LogopedicBackend.Services.Results.Patients;
 using OneOf;
 
@@ -12,6 +13,10 @@ public interface IPatientService
     Task<Patient?> GetByIdAsync(int patientId, CancellationToken ct = default);
     Task<PatientDto?> GetPatientDtoByIdAsync(int patientId, CancellationToken ct = default);
     Task<IReadOnlyList<PatientDto>> GetAllAsync(CancellationToken ct = default);
+
+    Task<OneOf<PagedResultDto<PatientDto>, InvalidPageSizeError>> QueryAsync(PatientQueryParameters query,
+        CancellationToken ct = default);
+
     Task<PatientCreated> CreateAsync(CreatePatientDto dto, CancellationToken ct = default);
 
     Task<OneOf<PatientUpdated, PatientNotFound>> UpdateAsync(int id, UpdatePatientDto dto,

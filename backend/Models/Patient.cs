@@ -12,4 +12,6 @@ public class Patient
     public required Therapist Therapist { get; set; }
 
     public ICollection<Appointment> Appointments { get; set; } = new List<Appointment>();
+
+    public string SearchText { get; private set; } = "";
 }

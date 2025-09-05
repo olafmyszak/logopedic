@@ -17,31 +17,9 @@ public class LogopedicContext(DbContextOptions<LogopedicContext> options)
 
         modelBuilder.HasDefaultSchema("identity");
 
-        modelBuilder.Entity<Therapist>()
-            .ToTable("Therapists", "public")
-            .HasMany(t => t.Patients)
-            .WithOne(p => p.Therapist)
-            .HasForeignKey(p => p.TherapistId)
-            .OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.HasPostgresExtension("unaccent");
+        modelBuilder.HasPostgresExtension("pg_trgm");
 
-        modelBuilder.Entity<Patient>()
-            .ToTable("Patients", "public")
-            .HasMany(p => p.Appointments)
-            .WithOne(a => a.Patient)
-            .HasForeignKey(a => a.PatientId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        modelBuilder.Entity<Appointment>()
-            .ToTable("Appointments", "public")
-            .HasOne(a => a.Therapist)
-            .WithMany(t => t.Appointments)
-            .HasForeignKey(a => a.TherapistId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        modelBuilder.Entity<Appointment>()
-            .HasOne(a => a.Patient)
-            .WithMany(p => p.Appointments)
-            .HasForeignKey(a => a.PatientId)
-            .OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(LogopedicContext).Assembly);
     }
 }

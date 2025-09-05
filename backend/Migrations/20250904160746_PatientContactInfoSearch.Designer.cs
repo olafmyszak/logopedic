@@ -3,6 +3,7 @@ using System;
 using LogopedicBackend.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace LogopedicBackend.Migrations
 {
     [DbContext(typeof(LogopedicContext))]
-    partial class LogopedicContextModelSnapshot : ModelSnapshot
+    [Migration("20250904160746_PatientContactInfoSearch")]
+    partial class PatientContactInfoSearch
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -53,17 +56,9 @@ namespace LogopedicBackend.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("DurationInMinutes");
-
                     b.HasIndex("PatientId");
 
-                    b.HasIndex("StartTime");
-
-                    b.HasIndex("Status");
-
                     b.HasIndex("TherapistId");
-
-                    b.HasIndex("Type");
 
                     b.ToTable("Appointments", "public");
                 });
@@ -100,10 +95,6 @@ namespace LogopedicBackend.Migrations
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("ContactInfo");
-
-                    b.HasIndex("FullName");
 
                     b.HasIndex("TherapistId");
 
