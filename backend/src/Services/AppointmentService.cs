@@ -2,6 +2,7 @@
 using LogopedicBackend.Data;
 using LogopedicBackend.Dtos;
 using LogopedicBackend.Enums;
+using LogopedicBackend.Extensions;
 using LogopedicBackend.Models;
 using LogopedicBackend.Services.Results.Appointments;
 using LogopedicBackend.Services.Results.Common.NotFound;
@@ -40,16 +41,10 @@ public class AppointmentService(
     public async Task<OneOf<PagedResultDto<AppointmentDto>, InvalidDateRangeError, InvalidPageSizeError>> QueryAsync(
         AppointmentQueryParameters query, CancellationToken ct = default)
     {
-        var now = DateTimeOffset.UtcNow;
-        var from = (query.From ?? now.Date).ToUniversalTime();
-        var to = (query.To ?? now.AddMonths(1)).ToUniversalTime();
-
-        if (from > to)
+        if (query.From > query.To)
         {
-            return new InvalidDateRangeError(from, to);
+            return new InvalidDateRangeError(query.From, query.To);
         }
-
-        var pageNumber = query.PageNumber;
 
         if (query.PageSize is > AppointmentQueryParameters.MaxPageSize or < AppointmentQueryParameters.MinPageSize)
         {
@@ -59,38 +54,19 @@ public class AppointmentService(
                 AppointmentQueryParameters.MaxPageSize);
         }
 
-        var pageSize = query.PageSize;
-
         var therapistId = await therapistService.GetCurrentTherapistIdOrThrowAsync(ct);
 
         var baseQuery = context.Appointments
             .AsNoTracking()
-            .Where(a => a.TherapistId == therapistId && a.StartTime >= from && a.StartTime < to);
+            .Where(a => a.TherapistId == therapistId && a.StartTime >= query.From && a.StartTime < query.To);
 
-        if (query.PatientId is not null)
-        {
-            baseQuery = baseQuery.Where(a => a.PatientId == query.PatientId.Value);
-        }
+        baseQuery = ApplyFiltering(baseQuery, query);
+        baseQuery = ApplySorting(baseQuery, query);
 
-        if (query.Status?.Any() == true)
-        {
-            baseQuery = baseQuery.Where(a => query.Status.Contains(a.Status));
-        }
-
-        if (query.Type?.Any() == true)
-        {
-            baseQuery = baseQuery.Where(a => query.Type.Contains(a.Type));
-        }
-
-        baseQuery = ApplySorting(baseQuery, query.Sort);
-
-        var totalCount = await baseQuery.CountAsync(ct);
-        var skip = (pageNumber - 1) * pageSize;
-
-        var items = await baseQuery
-            .Skip(skip)
-            .Take(pageSize)
-            .Select(a => new AppointmentDto
+        return await baseQuery.ToPagedResultAsync(
+            query.PageNumber,
+            query.PageSize,
+            a => new AppointmentDto
             {
                 Id = a.Id,
                 PatientId = a.PatientId,
@@ -98,16 +74,8 @@ public class AppointmentService(
                 DurationInMinutes = a.DurationInMinutes,
                 Type = a.Type,
                 Status = a.Status
-            })
-            .ToListAsync(ct);
-
-        return new PagedResultDto<AppointmentDto>
-        {
-            Items = items,
-            TotalCount = totalCount,
-            PageNumber = pageNumber,
-            PageSize = pageSize
-        };
+            },
+            ct);
     }
 
     public async Task<OneOf<AppointmentCreated, PatientNotFound, TimeConflict, DurationZeroOrLess>> CreateAsync(
@@ -242,8 +210,32 @@ public class AppointmentService(
         return rows > 0;
     }
 
-    private static IQueryable<Appointment> ApplySorting(IQueryable<Appointment> baseQuery, string sort)
+    private static IQueryable<Appointment> ApplyFiltering(IQueryable<Appointment> baseQuery,
+        AppointmentQueryParameters query)
     {
+        if (query.PatientId is not null)
+        {
+            baseQuery = baseQuery.Where(a => a.PatientId == query.PatientId.Value);
+        }
+
+        if (query.Status.Length > 0)
+        {
+            baseQuery = baseQuery.Where(a => query.Status.Contains(a.Status));
+        }
+
+        if (query.Type.Length > 0)
+        {
+            baseQuery = baseQuery.Where(a => query.Type.Contains(a.Type));
+        }
+
+        return baseQuery;
+    }
+
+    private static IQueryable<Appointment> ApplySorting(IQueryable<Appointment> baseQuery,
+        AppointmentQueryParameters query)
+    {
+        var sort = query.Sort;
+
         if (string.IsNullOrWhiteSpace(sort))
         {
             sort = "startTime:asc";
