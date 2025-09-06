@@ -9,7 +9,6 @@ namespace LogopedicBackend.Services;
 public interface IAppointmentService
 {
     Task<AppointmentDto?> GetByIdAsync(int id, CancellationToken ct = default);
-    Task<IReadOnlyList<AppointmentDto>> GetAllAsync(CancellationToken ct = default);
 
     Task<OneOf<PagedResultDto<AppointmentDto>, InvalidDateRangeError, InvalidPageSizeError>> QueryAsync(
         AppointmentQueryParameters query, CancellationToken ct = default);

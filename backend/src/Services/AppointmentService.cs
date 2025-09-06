@@ -37,27 +37,6 @@ public class AppointmentService(
         return appointment;
     }
 
-    public async Task<IReadOnlyList<AppointmentDto>> GetAllAsync(CancellationToken ct = default)
-    {
-        var therapistId = await therapistService.GetCurrentTherapistIdOrThrowAsync(ct);
-
-        var appointments = await context.Appointments
-            .AsNoTracking()
-            .Where(a => a.TherapistId == therapistId)
-            .Select(a => new AppointmentDto
-            {
-                Id = a.Id,
-                PatientId = a.PatientId,
-                StartTime = a.StartTime,
-                DurationInMinutes = a.DurationInMinutes,
-                Type = a.Type,
-                Status = a.Status
-            })
-            .ToListAsync(ct);
-
-        return appointments;
-    }
-
     public async Task<OneOf<PagedResultDto<AppointmentDto>, InvalidDateRangeError, InvalidPageSizeError>> QueryAsync(
         AppointmentQueryParameters query, CancellationToken ct = default)
     {
@@ -72,12 +51,12 @@ public class AppointmentService(
 
         var pageNumber = query.PageNumber;
 
-        const int minPageSize = 1;
-        const int maxPageSize = 200;
-
-        if (query.PageSize is > maxPageSize or < minPageSize)
+        if (query.PageSize is > AppointmentQueryParameters.MaxPageSize or < AppointmentQueryParameters.MinPageSize)
         {
-            return new InvalidPageSizeError(query.PageSize, minPageSize, maxPageSize);
+            return new InvalidPageSizeError(
+                query.PageSize,
+                AppointmentQueryParameters.MinPageSize,
+                AppointmentQueryParameters.MaxPageSize);
         }
 
         var pageSize = query.PageSize;
@@ -283,6 +262,8 @@ public class AppointmentService(
 
         IOrderedQueryable<Appointment>? ordered = null;
 
+        var hasIdSort = false;
+
         foreach (var clause in clauses)
         {
             var parts = clause.Split(':', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
@@ -293,6 +274,11 @@ public class AppointmentService(
             if (!map.TryGetValue(field, out var selector))
             {
                 continue;
+            }
+
+            if (!hasIdSort && string.Equals(field, "id", StringComparison.OrdinalIgnoreCase))
+            {
+                hasIdSort = true;
             }
 
             if (ordered is null)
@@ -309,6 +295,16 @@ public class AppointmentService(
             }
         }
 
-        return ordered ?? baseQuery.OrderBy(a => a.StartTime).ThenBy(a => a.Id);
+        if (ordered is null)
+        {
+            return baseQuery.OrderBy(a => a.StartTime).ThenBy(a => a.Id);
+        }
+
+        if (!hasIdSort)
+        {
+            ordered = ordered.ThenBy(a => a.Id);
+        }
+
+        return ordered;
     }
 }
