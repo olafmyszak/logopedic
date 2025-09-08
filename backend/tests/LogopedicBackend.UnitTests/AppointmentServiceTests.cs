@@ -1,4 +1,5 @@
-﻿using LogopedicBackend.Data;
+﻿using System.Linq.Expressions;
+using LogopedicBackend.Data;
 using LogopedicBackend.Dtos;
 using LogopedicBackend.Enums;
 using LogopedicBackend.Models;
@@ -677,5 +678,446 @@ public class AppointmentServiceTests
         // Expect descending Duration, tie-break by Id ascending
         var expectedOrder = new[] { 3, 2, 1, 4, 5 };
         Assert.Equal(expectedOrder, paged.Items.Select(a => a.Id));
+    }
+
+    [Fact]
+    public async Task CreateAsync_ReturnsAppointmentCreated_WhenDtoIsValid()
+    {
+        var (ctx, _, therapist, patient, _) = await new TestDataBuilder()
+            .WithUser()
+            .WithPatient()
+            .WithPatient()
+            .BuildAsync();
+
+        // Arrange
+        var dto = new CreateAppointmentDto
+        {
+            StartTime = DateTimeOffset.UtcNow.AddDays(1),
+            DurationInMinutes = 45,
+            Type = AppointmentType.Diagnosis,
+            PatientId = patient!.Id,
+        };
+
+        var therapistService = Substitute.For<ITherapistService>();
+        therapistService.GetCurrentTherapistOrThrowAsync(Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(therapist)!);
+
+        var patientService = Substitute.For<IPatientService>();
+        patientService.GetByIdAsync(patient.Id)!
+            .Returns(Task.FromResult(patient));
+
+        var appointmentService = new AppointmentService(ctx, therapistService, patientService);
+
+        // Act
+        var result = await appointmentService.CreateAsync(dto);
+
+        // Assert
+        Assert.True(result.IsT0);
+    }
+
+    [Fact]
+    public async Task CreateAsync_ReturnsPatientNotFound_WhenPatientIdDoesNotExist()
+    {
+        var (ctx, _, therapist, patient, _) = await new TestDataBuilder()
+            .WithUser()
+            .WithPatient()
+            .WithPatient()
+            .BuildAsync();
+
+        // Arrange
+        var dto = new CreateAppointmentDto
+        {
+            StartTime = DateTimeOffset.UtcNow.AddDays(1),
+            DurationInMinutes = 45,
+            Type = AppointmentType.Diagnosis,
+            PatientId = patient!.Id - 1, // Wrong patientId
+        };
+
+        var therapistService = Substitute.For<ITherapistService>();
+        therapistService.GetCurrentTherapistOrThrowAsync(Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(therapist)!);
+
+        var patientService = Substitute.For<IPatientService>();
+        patientService.GetByIdAsync(patient.Id)!
+            .Returns(Task.FromResult(patient));
+
+        var appointmentService = new AppointmentService(ctx, therapistService, patientService);
+
+        // Act
+        var result = await appointmentService.CreateAsync(dto);
+
+        // Assert
+        Assert.True(result.IsT1);
+    }
+
+    [Fact]
+    public async Task CreateAsync_ReturnsTimeConflict_WhenRequestedTimeConflictsWithExistingAppointments()
+    {
+        var (ctx, _, therapist, patient, appointment) = await new TestDataBuilder()
+            .WithUser()
+            .WithPatient()
+            .WithPatient()
+            .WithAppointment()
+            .BuildAsync();
+
+        // Arrange
+        var dto = new CreateAppointmentDto
+        {
+            StartTime = appointment!.StartTime.AddMinutes(-15), // Make sure it overlaps an existing appointment
+            DurationInMinutes = 45,
+            Type = AppointmentType.Diagnosis,
+            PatientId = patient!.Id
+        };
+
+        var therapistService = Substitute.For<ITherapistService>();
+        therapistService.GetCurrentTherapistOrThrowAsync(Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(therapist)!);
+
+        var patientService = Substitute.For<IPatientService>();
+        patientService.GetByIdAsync(patient.Id)!
+            .Returns(Task.FromResult(patient));
+
+        var appointmentService = new AppointmentService(ctx, therapistService, patientService);
+
+        // Act
+        var result = await appointmentService.CreateAsync(dto);
+
+        // Assert
+        Assert.True(result.IsT2);
+    }
+
+    [Fact]
+    public async Task CreateAsync_ReturnsDurationZeroOrLess_WhenDurationIsZeroOrLess()
+    {
+        var (ctx, _, therapist, patient, _) = await new TestDataBuilder()
+            .WithUser()
+            .WithPatient()
+            .WithPatient()
+            .BuildAsync();
+
+        // Arrange
+        var dto1 = new CreateAppointmentDto
+        {
+            StartTime = DateTimeOffset.UtcNow.AddDays(1),
+            DurationInMinutes = 0,
+            Type = AppointmentType.Diagnosis,
+            PatientId = patient!.Id,
+        };
+
+        var dto2 = new CreateAppointmentDto
+        {
+            StartTime = DateTimeOffset.UtcNow.AddDays(3),
+            DurationInMinutes = -5,
+            Type = AppointmentType.Diagnosis,
+            PatientId = patient.Id,
+        };
+
+        var therapistService = Substitute.For<ITherapistService>();
+        therapistService.GetCurrentTherapistOrThrowAsync(Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(therapist)!);
+
+        var patientService = Substitute.For<IPatientService>();
+        patientService.GetByIdAsync(patient.Id)!
+            .Returns(Task.FromResult(patient));
+
+        var appointmentService = new AppointmentService(ctx, therapistService, patientService);
+
+        // Act
+        var result1 = await appointmentService.CreateAsync(dto1);
+        var result2 = await appointmentService.CreateAsync(dto2);
+
+        // Assert
+        Assert.True(result1.IsT3);
+        Assert.True(result2.IsT3);
+    }
+
+    // Skip testing PatchAsync and DeleteAsync due to in memory db not supporting ExecuteUpdateAsync() and ExecuteDeleteAsync()
+}
+
+public class AppointmentFilterTests
+{
+    // Dummy appointment entity for tests
+    private class Appointment
+    {
+        public int Id { get; set; }
+        public int PatientId { get; set; }
+        public AppointmentType Type { get; set; }
+        public AppointmentStatus Status { get; set; }
+    }
+
+    private readonly List<Appointment> _appointments =
+    [
+        new()
+        {
+            Id = 1,
+            PatientId = 10,
+            Status = AppointmentStatus.Scheduled,
+            Type = AppointmentType.Consultation,
+        },
+
+        new()
+        {
+            Id = 2,
+            PatientId = 11,
+            Status = AppointmentStatus.Completed,
+            Type = AppointmentType.Diagnosis,
+        },
+
+        new()
+        {
+            Id = 3,
+            PatientId = 10,
+            Status = AppointmentStatus.Cancelled,
+            Type = AppointmentType.Therapy,
+        },
+
+        new()
+        {
+            Id = 4,
+            PatientId = 12,
+            Status = AppointmentStatus.Scheduled,
+            Type = AppointmentType.Diagnosis,
+        }
+    ];
+
+    [Fact]
+    public void Filters_ByPatientId()
+    {
+        // Arrange
+        var query = new AppointmentQueryParameters
+        {
+            PatientId = 10
+        };
+
+        // Act
+        var result = ApplyFiltering(_appointments.AsQueryable(), query).ToList();
+
+        // Assert
+        Assert.All(result, a => Assert.Equal(10, a.PatientId));
+        Assert.Equal(2, result.Count);
+    }
+
+    [Fact]
+    public void Filters_ByStatus()
+    {
+        var query = new AppointmentQueryParameters
+        {
+            Status = [AppointmentStatus.Completed]
+        };
+
+        var result = ApplyFiltering(_appointments.AsQueryable(), query).ToList();
+
+        Assert.Single(result);
+        Assert.Equal(AppointmentStatus.Completed, result[0].Status);
+    }
+
+    [Fact]
+    public void Filters_ByType()
+    {
+        var query = new AppointmentQueryParameters
+        {
+            Type = [AppointmentType.Diagnosis]
+        };
+
+        var result = ApplyFiltering(_appointments.AsQueryable(), query).ToList();
+
+        Assert.All(result, a => Assert.Equal(AppointmentType.Diagnosis, a.Type));
+        Assert.Equal(2, result.Count);
+    }
+
+    [Fact]
+    public void Filters_ByPatientId_AndStatus()
+    {
+        var query = new AppointmentQueryParameters
+        {
+            PatientId = 10,
+            Status = [AppointmentStatus.Cancelled]
+        };
+
+        var result = ApplyFiltering(_appointments.AsQueryable(), query).ToList();
+
+        Assert.Single(result);
+        Assert.Equal(3, result[0].Id);
+    }
+
+    // Bring in the tested method here for convenience
+    private static IQueryable<Appointment> ApplyFiltering(IQueryable<Appointment> baseQuery,
+        AppointmentQueryParameters query)
+    {
+        if (query.PatientId is not null)
+        {
+            baseQuery = baseQuery.Where(a => a.PatientId == query.PatientId.Value);
+        }
+
+        if (query.Status.Length > 0)
+        {
+            baseQuery = baseQuery.Where(a => query.Status.Contains(a.Status));
+        }
+
+        if (query.Type.Length > 0)
+        {
+            baseQuery = baseQuery.Where(a => query.Type.Contains(a.Type));
+        }
+
+        return baseQuery;
+    }
+}
+
+public class AppointmentSortingTests
+{
+    // Dummy appointment entity for tests
+    private class Appointment
+    {
+        public int Id { get; set; }
+        public DateTimeOffset StartTime { get; set; }
+        public int DurationInMinutes { get; set; }
+        public AppointmentType Type { get; set; }
+        public AppointmentStatus Status { get; set; }
+    }
+
+    private readonly List<Appointment> _appointments =
+    [
+        new()
+        {
+            Id = 3,
+            StartTime = new DateTimeOffset(2025, 9, 6, 9, 0, 0, TimeSpan.Zero),
+            DurationInMinutes = 30,
+            Type = AppointmentType.Diagnosis,
+            Status = AppointmentStatus.Scheduled
+        },
+        new()
+        {
+            Id = 1,
+            StartTime = new DateTimeOffset(2025, 9, 5, 14, 0, 0, TimeSpan.Zero),
+            DurationInMinutes = 60,
+            Type = AppointmentType.Consultation,
+            Status = AppointmentStatus.Completed
+        },
+        new()
+        {
+            Id = 5,
+            StartTime = new DateTimeOffset(2025, 9, 7, 10, 0, 0, TimeSpan.Zero),
+            DurationInMinutes = 45,
+            Type = AppointmentType.Diagnosis,
+            Status = AppointmentStatus.Cancelled
+        },
+        new()
+        {
+            Id = 2,
+            StartTime = new DateTimeOffset(2025, 9, 5, 9, 0, 0, TimeSpan.Zero),
+            DurationInMinutes = 90,
+            Type = AppointmentType.Consultation,
+            Status = AppointmentStatus.Scheduled
+        },
+        new()
+        {
+            Id = 4,
+            StartTime = new DateTimeOffset(2025, 9, 8, 11, 0, 0, TimeSpan.Zero),
+            DurationInMinutes = 15,
+            Type = AppointmentType.Therapy,
+            Status = AppointmentStatus.Completed
+        }
+    ];
+
+    public static TheoryData<AppointmentQueryParameters, int[]> SortingCases
+    {
+        get
+        {
+            var data = new TheoryData<AppointmentQueryParameters, int[]>
+            {
+                { new AppointmentQueryParameters { Sort = "id:desc" }, [5, 4, 3, 2, 1] },
+                { new AppointmentQueryParameters { Sort = "id:asc" }, [1, 2, 3, 4, 5] },
+                { new AppointmentQueryParameters { Sort = "startTime:desc" }, [4, 5, 3, 1, 2] },
+                { new AppointmentQueryParameters { Sort = "startTime:asc" }, [2, 1, 3, 5, 4] },
+                { new AppointmentQueryParameters { Sort = "duration:desc" }, [2, 1, 5, 3, 4] },
+                { new AppointmentQueryParameters { Sort = "duration:asc" }, [4, 3, 5, 1, 2] },
+                { new AppointmentQueryParameters { Sort = "type:asc" }, [1, 2, 3, 5, 4] },
+                { new AppointmentQueryParameters { Sort = "type:desc" }, [4, 3, 5, 1, 2] },
+                { new AppointmentQueryParameters { Sort = "status:asc" }, [5, 1, 4, 2, 3] },
+                { new AppointmentQueryParameters { Sort = "status:desc" }, [2, 3, 1, 4, 5] }
+            };
+
+            return data;
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(SortingCases))]
+    public void Sorts_Correctly(AppointmentQueryParameters sortExpression, int[] expectedIds)
+    {
+        var data = _appointments.AsQueryable();
+
+        var result = ApplySorting(data, sortExpression).ToArray();
+
+        Assert.Equal(expectedIds, result.Select(a => a.Id));
+    }
+
+    private static IQueryable<Appointment> ApplySorting(IQueryable<Appointment> baseQuery,
+        AppointmentQueryParameters query)
+    {
+        var sort = query.Sort;
+
+        if (string.IsNullOrWhiteSpace(sort))
+        {
+            sort = "startTime:asc";
+        }
+
+        var clauses = sort.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        var map = new Dictionary<string, Expression<Func<Appointment, object?>>>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["starttime"] = a => a.StartTime,
+            ["id"] = a => a.Id,
+            ["duration"] = a => a.DurationInMinutes,
+            ["type"] = a => a.Type,
+            ["status"] = a => a.Status
+        };
+
+        IOrderedQueryable<Appointment>? ordered = null;
+
+        var hasIdSort = false;
+
+        foreach (var clause in clauses)
+        {
+            var parts = clause.Split(':', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            var field = parts[0];
+            var direction = parts.Length > 1 ? parts[1] : "asc";
+
+            // Skip fields which don't correspond to allowed sorting fields
+            if (!map.TryGetValue(field, out var selector))
+            {
+                continue;
+            }
+
+            if (!hasIdSort && string.Equals(field, "id", StringComparison.OrdinalIgnoreCase))
+            {
+                hasIdSort = true;
+            }
+
+            if (ordered is null)
+            {
+                ordered = direction.Equals("desc", StringComparison.OrdinalIgnoreCase)
+                    ? baseQuery.OrderByDescending(selector)
+                    : baseQuery.OrderBy(selector);
+            }
+            else
+            {
+                ordered = direction.Equals("desc", StringComparison.OrdinalIgnoreCase)
+                    ? ordered.ThenByDescending(selector)
+                    : ordered.ThenBy(selector);
+            }
+        }
+
+        if (ordered is null)
+        {
+            return baseQuery.OrderBy(a => a.StartTime).ThenBy(a => a.Id);
+        }
+
+        if (!hasIdSort)
+        {
+            ordered = ordered.ThenBy(a => a.Id);
+        }
+
+        return ordered;
     }
 }

@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using System.Text.Json.Serialization;
 using LogopedicBackend.Data;
 using LogopedicBackend.Exceptions;
@@ -119,9 +120,6 @@ builder.Services.AddSwaggerGen(options =>
 
 var app = builder.Build();
 
-await app.SeedRolesAsync();
-await app.SeedAdminAsync();
-
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -129,6 +127,9 @@ if (app.Environment.IsDevelopment())
 
     app.ApplyMigrations();
 }
+
+await app.SeedRolesAsync();
+await app.SeedAdminAsync();
 
 app.UseExceptionHandler();
 
@@ -143,4 +144,12 @@ app.UseAuthorization();
 
 app.MapControllers();
 
+app.MapGet("/whoami",
+    (ClaimsPrincipal u) => Results.Ok(new
+        { name = u.Identity?.Name, roles = u.Claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value) }));
+
+
 app.Run();
+
+
+public partial class Program;

@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using LogopedicBackend.Constants;
+using Microsoft.AspNetCore.Identity;
 
 namespace LogopedicBackend.Extensions;
 
@@ -9,7 +10,7 @@ public static class SeedRolesExtension
         using var scope = app.ApplicationServices.CreateScope();
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
 
-        string[] roles = ["Admin", "Therapist"];
+        string[] roles = [AppRoles.Therapist, AppRoles.Admin];
 
         foreach (var role in roles)
         {

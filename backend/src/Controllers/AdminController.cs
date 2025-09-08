@@ -17,7 +17,7 @@ public class AdminController(AdminService adminService) : ControllerBase
     [HttpDelete("user/{email}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> DeleteUser([EmailAddress] string email)
+    public async Task<IActionResult> DeleteUser(string email)
     {
         var success = await adminService.DeleteUserAndDomainDataAsync(email);
         if (!success)

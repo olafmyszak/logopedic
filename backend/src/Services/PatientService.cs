@@ -12,7 +12,7 @@ namespace LogopedicBackend.Services;
 
 public class PatientService(LogopedicContext context, ITherapistService therapistService) : IPatientService
 {
-    private static readonly Dictionary<string, Expression<Func<Patient, object?>>> _sortMap =
+    private static readonly Dictionary<string, Expression<Func<Patient, object?>>> SortMap =
         new(StringComparer.OrdinalIgnoreCase)
         {
             ["fullname"] = p => p.FullName,
@@ -215,7 +215,7 @@ public class PatientService(LogopedicContext context, ITherapistService therapis
             var direction = parts.Length > 1 ? parts[1] : "asc";
 
             // Skip fields which don't correspond to allowed sorting fields
-            if (!_sortMap.TryGetValue(field, out var selector))
+            if (!SortMap.TryGetValue(field, out var selector))
             {
                 continue;
             }

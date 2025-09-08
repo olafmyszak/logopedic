@@ -2,7 +2,7 @@
 
 public enum AppointmentType
 {
-    Diagnosis,
     Consultation,
+    Diagnosis,
     Therapy
 }

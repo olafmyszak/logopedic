@@ -245,8 +245,8 @@ public class AppointmentService(
 
         var map = new Dictionary<string, Expression<Func<Appointment, object?>>>(StringComparer.OrdinalIgnoreCase)
         {
-            ["starttime"] = a => a.StartTime,
             ["id"] = a => a.Id,
+            ["starttime"] = a => a.StartTime,
             ["duration"] = a => a.DurationInMinutes,
             ["type"] = a => a.Type,
             ["status"] = a => a.Status
