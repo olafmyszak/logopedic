@@ -10,9 +10,11 @@ namespace LogopedicBackend.IntegrationTests;
 public class TestDataSeeder(LogopedicContext context, UserManager<User> userManager)
 {
     private const string Locale = "pl";
+    public const string TestUsername = "test-user1";
     public List<Therapist> Therapists { get; } = [];
     public List<Patient> Patients { get; } = [];
     public List<Appointment> Appointments { get; } = [];
+    public User TestUser { get; private set; } = null!;
 
     public async Task SeedAsync(
         string defaultPassword = "P@ssword2",
@@ -28,14 +30,12 @@ public class TestDataSeeder(LogopedicContext context, UserManager<User> userMana
 
     private async Task SeedUsersAndTherapists(string defaultPassword)
     {
-        const string username1 = "test-user";
-
-        var user1 = await userManager.FindByNameAsync(username1);
+        var user1 = await userManager.FindByNameAsync(TestUsername);
         if (user1 == null)
         {
             user1 = new User
             {
-                UserName = username1,
+                UserName = TestUsername,
                 Email = "test@test.net",
                 EmailConfirmed = true
             };
@@ -83,7 +83,7 @@ public class TestDataSeeder(LogopedicContext context, UserManager<User> userMana
 
             var therapist2 = new Therapist
             {
-                FullName = "test user",
+                FullName = "test user2",
                 UserId = user2.Id,
                 User = user2
             };
@@ -91,7 +91,10 @@ public class TestDataSeeder(LogopedicContext context, UserManager<User> userMana
             context.Therapists.Add(therapist2);
         }
 
+        await context.SaveChangesAsync();
+
         Therapists.AddRange(context.Therapists);
+        TestUser = user1;
     }
 
     private async Task SeedPatients(int patientsPerTherapists)
@@ -125,6 +128,7 @@ public class TestDataSeeder(LogopedicContext context, UserManager<User> userMana
         }
 
         await context.Patients.AddRangeAsync(Patients);
+        await context.SaveChangesAsync();
     }
 
     private async Task SeedAppointments(int appointmentsPerPatient)
@@ -154,5 +158,6 @@ public class TestDataSeeder(LogopedicContext context, UserManager<User> userMana
         }
 
         await context.Appointments.AddRangeAsync(Appointments);
+        await context.SaveChangesAsync();
     }
 }

@@ -55,11 +55,19 @@ builder.Services.AddAntiforgery(options =>
     options.HeaderName = "X-XSRF-TOKEN";
 });
 
-builder.Services.AddControllersWithViews(options =>
-    {
-        options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute());
-    })
-    .AddJsonOptions(options => { options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()); });
+if (builder.Environment.IsEnvironment("IntegrationTests"))
+{
+    builder.Services
+        // Ignore antiforgery for integration tests
+        .AddControllersWithViews(options => { options.Filters.Add(new IgnoreAntiforgeryTokenAttribute()); })
+        .AddJsonOptions(options => { options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()); });
+}
+else
+{
+    builder.Services
+        .AddControllersWithViews(options => { options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute()); })
+        .AddJsonOptions(options => { options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()); });
+}
 
 builder.Services.AddCors(options =>
 {
@@ -127,6 +135,10 @@ if (app.Environment.IsDevelopment())
 
     app.ApplyMigrations();
 }
+else if (app.Environment.IsEnvironment("IntegrationTests"))
+{
+    app.ApplyMigrations();
+}
 
 await app.SeedRolesAsync();
 await app.SeedAdminAsync();
@@ -144,12 +156,6 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-app.MapGet("/whoami",
-    (ClaimsPrincipal u) => Results.Ok(new
-        { name = u.Identity?.Name, roles = u.Claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value) }));
-
-
 app.Run();
-
 
 public partial class Program;

@@ -16,8 +16,8 @@ public class TestCookieAuthHandler(
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
         var userManager = Context.RequestServices.GetRequiredService<UserManager<User>>();
-        var user = await userManager
-            .FindByEmailAsync("test@test.net"); // Has to match one of the users created in TestDataSeeder
+        // Has to match one of the users created in TestDataSeeder
+        var user = await userManager.FindByNameAsync(TestDataSeeder.TestUsername);
 
         if (user == null)
         {

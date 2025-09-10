@@ -17,7 +17,7 @@ public interface IAppointmentService
         CreateAppointmentDto dto,
         CancellationToken ct = default);
 
-    Task<OneOf<AppointmentUpdated, AppointmentNotFound, PatientNotFound, DurationZeroOrLess>> PatchAsync(
+    Task<OneOf<AppointmentUpdated, AppointmentNotFound, PatientNotFound, DurationZeroOrLess, TimeConflict>> PatchAsync(
         int id,
         PatchAppointmentDto dto,
         CancellationToken ct = default);

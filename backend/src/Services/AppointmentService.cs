@@ -106,7 +106,7 @@ public class AppointmentService(
             .Select(a => new AppointmentDto
             {
                 Id = a.Id,
-                PatientId = patient.Id,
+                PatientId = a.PatientId,
                 StartTime = a.StartTime,
                 DurationInMinutes = a.DurationInMinutes,
                 Type = a.Type,
@@ -147,12 +147,21 @@ public class AppointmentService(
         return new AppointmentCreated(result);
     }
 
-    public async Task<OneOf<AppointmentUpdated, AppointmentNotFound, PatientNotFound, DurationZeroOrLess>> PatchAsync(
-        int id,
-        PatchAppointmentDto dto,
-        CancellationToken ct = default)
+    public async Task<OneOf<AppointmentUpdated, AppointmentNotFound, PatientNotFound, DurationZeroOrLess, TimeConflict>>
+        PatchAsync(
+            int id,
+            PatchAppointmentDto dto,
+            CancellationToken ct = default)
     {
         var therapistId = await therapistService.GetCurrentTherapistIdOrThrowAsync(ct);
+
+        var appointment =
+            await context.Appointments.SingleOrDefaultAsync(a => a.Id == id && a.TherapistId == therapistId, ct);
+
+        if (appointment is null)
+        {
+            return new AppointmentNotFound(id);
+        }
 
         // If no fields to update, return early
         if (dto.StartTime is null &&
@@ -164,37 +173,53 @@ public class AppointmentService(
             return new AppointmentUpdated();
         }
 
-        if (dto.DurationInMinutes is not null)
+        var newStartTime = dto.StartTime ?? appointment.StartTime;
+        var newDurationInMinutes = dto.DurationInMinutes ?? appointment.DurationInMinutes;
+        var newType = dto.Type ?? appointment.Type;
+        var newStatus = dto.Status ?? appointment.Status;
+        var newPatientId = dto.PatientId ?? appointment.PatientId;
+
+        if (newDurationInMinutes <= 0)
         {
-            if (dto.DurationInMinutes.Value <= 0)
+            return new DurationZeroOrLess(newDurationInMinutes);
+        }
+
+        var patientExists = await patientService.ExistsForTherapistAsync(newPatientId, ct);
+        if (!patientExists)
+        {
+            return new PatientNotFound(newPatientId);
+        }
+
+        var endTime = newStartTime.AddMinutes(newDurationInMinutes);
+        var conflictingAppointments = await context.Appointments
+            .AsNoTracking()
+            .Where(a => a.Id != id && // Exclude currently updated appointment or it will always conflict
+                        a.TherapistId == therapistId &&
+                        a.StartTime < endTime &&
+                        a.StartTime.AddMinutes(newDurationInMinutes) > newStartTime)
+            .Select(a => new AppointmentDto
             {
-                return new DurationZeroOrLess(dto.DurationInMinutes.Value);
-            }
-        }
+                Id = a.Id,
+                PatientId = a.PatientId,
+                StartTime = a.StartTime,
+                DurationInMinutes = a.DurationInMinutes,
+                Type = a.Type,
+                Status = a.Status
+            })
+            .ToListAsync(ct);
 
-        if (dto.PatientId is not null)
+        if (conflictingAppointments.Count != 0)
         {
-            var patientExists = await patientService.ExistsForTherapistAsync(dto.PatientId.Value, ct);
-            if (!patientExists)
-            {
-                return new PatientNotFound(dto.PatientId.Value);
-            }
+            return new TimeConflict(newStartTime, endTime, conflictingAppointments);
         }
 
-        var rows = await context.Appointments
-            .Where(a => a.Id == id && a.TherapistId == therapistId)
-            .ExecuteUpdateAsync(setter => setter
-                    .SetProperty(a => a.StartTime, a => dto.StartTime ?? a.StartTime)
-                    .SetProperty(a => a.DurationInMinutes, a => dto.DurationInMinutes ?? a.DurationInMinutes)
-                    .SetProperty(a => a.Type, a => dto.Type ?? a.Type)
-                    .SetProperty(a => a.Status, a => dto.Status ?? a.Status)
-                    .SetProperty(a => a.PatientId, a => dto.PatientId ?? a.PatientId),
-                ct);
+        appointment.StartTime = newStartTime;
+        appointment.DurationInMinutes = newDurationInMinutes;
+        appointment.Type = newType;
+        appointment.Status = newStatus;
+        appointment.PatientId = newPatientId;
 
-        if (rows == 0)
-        {
-            return new AppointmentNotFound(id);
-        }
+        await context.SaveChangesAsync(ct);
 
         return new AppointmentUpdated();
     }
@@ -202,12 +227,17 @@ public class AppointmentService(
     public async Task<bool> DeleteAsync(int id, CancellationToken ct = default)
     {
         var therapistId = await therapistService.GetCurrentTherapistIdOrThrowAsync(ct);
+        var appointment = context.Appointments.SingleOrDefault(a => a.Id == id && a.TherapistId == therapistId);
 
-        var rows = await context.Appointments
-            .Where(a => a.Id == id && a.TherapistId == therapistId)
-            .ExecuteDeleteAsync(ct);
+        if (appointment is null)
+        {
+            return false;
+        }
 
-        return rows > 0;
+        context.Appointments.Remove(appointment);
+        await context.SaveChangesAsync(ct);
+
+        return true;
     }
 
     private static IQueryable<Appointment> ApplyFiltering(IQueryable<Appointment> baseQuery,

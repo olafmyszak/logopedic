@@ -2,4 +2,4 @@
 
 namespace LogopedicBackend.Services.Results.Appointments;
 
-public record AppointmentCreated(AppointmentDto Appointment);
+public record AppointmentCreated(AppointmentDto AppointmentDto);

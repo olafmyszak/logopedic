@@ -16,7 +16,7 @@ public class AppointmentsController(IAppointmentService appointmentService) : Co
 {
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<ActionResult<PagedResultDto<AppointmentDto>>> GetAll([FromQuery] AppointmentQueryParameters query,
+    public async Task<ActionResult<PagedResultDto<AppointmentDto>>> Query([FromQuery] AppointmentQueryParameters query,
         CancellationToken ct)
     {
         var result = await appointmentService.QueryAsync(query, ct);
@@ -81,7 +81,7 @@ public class AppointmentsController(IAppointmentService appointmentService) : Co
         var result = await appointmentService.CreateAsync(dto, ct);
 
         return result.Match<ActionResult<AppointmentDto>>(
-            created => CreatedAtAction(nameof(GetById), new { id = created.Appointment.Id }, created.Appointment),
+            created => CreatedAtAction(nameof(GetById), new { id = created.AppointmentDto.Id }, created.AppointmentDto),
             patientNotFound => Problem(
                 $"Patient with id {patientNotFound.PatientId} does not exist or does not belong to the current user",
                 HttpContext.Request.Path,
@@ -145,7 +145,17 @@ public class AppointmentsController(IAppointmentService appointmentService) : Co
                     Title = "Duration is zero or less",
                     Status = StatusCodes.Status400BadRequest,
                     Instance = HttpContext.Request.Path
-                }));
+                }),
+            timeConflict => Problem(
+                $"The requested time {timeConflict.RequestedStart:t}–{timeConflict.RequestedEnd:t} conflicts with {timeConflict.Conflicts.Count} existing appointment(s).",
+                HttpContext.Request.Path,
+                StatusCodes.Status409Conflict,
+                "Requested time slot conflicts with existing appointments",
+                extensions: new Dictionary<string, object?>
+                {
+                    ["conflicts"] = timeConflict.Conflicts
+                }
+            ));
     }
 
     [HttpDelete("{id:int}")]

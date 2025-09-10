@@ -43,7 +43,7 @@ public class IntegrationTestWebAppFactory : WebApplicationFactory<Program>, IAsy
             services.AddDbContext<LogopedicContext>(options => { options.UseNpgsql(connectionString); });
         });
 
-        builder.UseEnvironment("Development");
+        builder.UseEnvironment("IntegrationTests");
 
         builder.ConfigureTestServices(services =>
         {

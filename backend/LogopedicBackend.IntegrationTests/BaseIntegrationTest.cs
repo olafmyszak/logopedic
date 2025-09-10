@@ -1,6 +1,7 @@
 ﻿using LogopedicBackend.Data;
 using LogopedicBackend.Models;
 using Microsoft.AspNetCore.Identity;
+using Xunit.Abstractions;
 
 namespace LogopedicBackend.IntegrationTests;
 
@@ -8,15 +9,18 @@ public class BaseIntegrationTest : IClassFixture<IntegrationTestWebAppFactory>, 
 {
     protected TestDataSeeder DataSeeder { get; }
     protected HttpClient Client { get; private set; }
+    protected LogopedicContext DbContext { get; }
+    protected ITestOutputHelper TestOutputHelper { get; }
 
-    protected BaseIntegrationTest(IntegrationTestWebAppFactory factory)
+    protected BaseIntegrationTest(IntegrationTestWebAppFactory factory, ITestOutputHelper testOutputHelper)
     {
         var scope = factory.Services.CreateScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<LogopedicContext>();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
 
-        DataSeeder = new TestDataSeeder(dbContext, userManager);
+        DbContext = scope.ServiceProvider.GetRequiredService<LogopedicContext>();
+        DataSeeder = new TestDataSeeder(DbContext, userManager);
         Client = factory.CreateClient();
+        TestOutputHelper = testOutputHelper;
     }
 
     public Task InitializeAsync()
