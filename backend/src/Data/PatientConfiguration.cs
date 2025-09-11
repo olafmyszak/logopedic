@@ -38,18 +38,12 @@ public class PatientConfiguration : IEntityTypeConfiguration<Patient>
         builder.HasKey(p => p.Id);
 
         builder.Property(p => p.SearchText)
-            .HasComputedColumnSql(
-                "lower(unaccent(coalesce(FullName,'') || ' ' || coalesce(ContactInfo,''))",
-                true);
+            .HasComputedColumnSql("lower(unaccent(coalesce(FullName,'') || ' ' || coalesce(ContactInfo,''))", true);
 
-        builder.HasOne(p => p.Therapist)
-            .WithMany(t => t.Patients)
-            .HasForeignKey(p => p.TherapistId)
+        builder.HasOne(p => p.Therapist).WithMany(t => t.Patients).HasForeignKey(p => p.TherapistId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.HasMany(p => p.Appointments)
-            .WithOne(a => a.Patient)
-            .HasForeignKey(a => a.PatientId)
+        builder.HasMany(p => p.Appointments).WithOne(a => a.Patient).HasForeignKey(a => a.PatientId)
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasIndex(p => p.TherapistId);

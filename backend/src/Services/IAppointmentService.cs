@@ -14,13 +14,10 @@ public interface IAppointmentService
         AppointmentQueryParameters query, CancellationToken ct = default);
 
     Task<OneOf<AppointmentCreated, PatientNotFound, TimeConflict, DurationZeroOrLess>> CreateAsync(
-        CreateAppointmentDto dto,
-        CancellationToken ct = default);
+        CreateAppointmentDto dto, CancellationToken ct = default);
 
     Task<OneOf<AppointmentUpdated, AppointmentNotFound, PatientNotFound, DurationZeroOrLess, TimeConflict>> PatchAsync(
-        int id,
-        PatchAppointmentDto dto,
-        CancellationToken ct = default);
+        int id, PatchAppointmentDto dto, CancellationToken ct = default);
 
     Task<bool> DeleteAsync(int id, CancellationToken ct = default);
 }

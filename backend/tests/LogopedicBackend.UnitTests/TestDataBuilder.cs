@@ -8,10 +8,10 @@ namespace Logopedic.UnitTests;
 public class TestDataBuilder
 {
     private readonly DbContextOptions<LogopedicContext> _options;
-    private User? _user;
-    private Therapist? _therapist;
-    private Patient? _patient;
     private Appointment? _appointment;
+    private Patient? _patient;
+    private Therapist? _therapist;
+    private User? _user;
 
     public TestDataBuilder()
     {
@@ -96,20 +96,30 @@ public class TestDataBuilder
         return this;
     }
 
-    public async Task<(
-        LogopedicContext Context,
-        User? User,
-        Therapist? Therapist,
-        Patient? Patient,
-        Appointment? Appointment
-        )> BuildAsync()
+    public async Task<( LogopedicContext Context, User? User, Therapist? Therapist, Patient? Patient, Appointment?
+        Appointment )> BuildAsync()
     {
         var ctx = new LogopedicContext(_options);
 
-        if (_user != null) ctx.Users.Add(_user);
-        if (_therapist != null) ctx.Therapists.Add(_therapist);
-        if (_patient != null) ctx.Patients.Add(_patient);
-        if (_appointment != null) ctx.Appointments.Add(_appointment);
+        if (_user != null)
+        {
+            ctx.Users.Add(_user);
+        }
+
+        if (_therapist != null)
+        {
+            ctx.Therapists.Add(_therapist);
+        }
+
+        if (_patient != null)
+        {
+            ctx.Patients.Add(_patient);
+        }
+
+        if (_appointment != null)
+        {
+            ctx.Appointments.Add(_appointment);
+        }
 
         await ctx.SaveChangesAsync();
         return (ctx, _user, _therapist, _patient, _appointment);

@@ -21,10 +21,8 @@ public class AppointmentService(
     {
         var therapistId = await therapistService.GetCurrentTherapistIdOrThrowAsync(ct);
 
-        var appointment = await context.Appointments
-            .AsNoTracking()
-            .Where(a => a.Id == id && a.TherapistId == therapistId)
-            .Select(a => new AppointmentDto
+        var appointment = await context.Appointments.AsNoTracking()
+            .Where(a => a.Id == id && a.TherapistId == therapistId).Select(a => new AppointmentDto
             {
                 Id = a.Id,
                 PatientId = a.PatientId,
@@ -32,8 +30,7 @@ public class AppointmentService(
                 DurationInMinutes = a.DurationInMinutes,
                 Type = a.Type,
                 Status = a.Status
-            })
-            .SingleOrDefaultAsync(ct);
+            }).SingleOrDefaultAsync(ct);
 
         return appointment;
     }
@@ -48,39 +45,31 @@ public class AppointmentService(
 
         if (query.PageSize is > AppointmentQueryParameters.MaxPageSize or < AppointmentQueryParameters.MinPageSize)
         {
-            return new InvalidPageSizeError(
-                query.PageSize,
-                AppointmentQueryParameters.MinPageSize,
+            return new InvalidPageSizeError(query.PageSize, AppointmentQueryParameters.MinPageSize,
                 AppointmentQueryParameters.MaxPageSize);
         }
 
         var therapistId = await therapistService.GetCurrentTherapistIdOrThrowAsync(ct);
 
-        var baseQuery = context.Appointments
-            .AsNoTracking()
-            .Where(a => a.TherapistId == therapistId && a.StartTime >= query.From && a.StartTime < query.To);
+        var baseQuery = context.Appointments.AsNoTracking().Where(a =>
+            a.TherapistId == therapistId && a.StartTime >= query.From && a.StartTime < query.To);
 
         baseQuery = ApplyFiltering(baseQuery, query);
         baseQuery = ApplySorting(baseQuery, query);
 
-        return await baseQuery.ToPagedResultAsync(
-            query.PageNumber,
-            query.PageSize,
-            a => new AppointmentDto
-            {
-                Id = a.Id,
-                PatientId = a.PatientId,
-                StartTime = a.StartTime,
-                DurationInMinutes = a.DurationInMinutes,
-                Type = a.Type,
-                Status = a.Status
-            },
-            ct);
+        return await baseQuery.ToPagedResultAsync(query.PageNumber, query.PageSize, a => new AppointmentDto
+        {
+            Id = a.Id,
+            PatientId = a.PatientId,
+            StartTime = a.StartTime,
+            DurationInMinutes = a.DurationInMinutes,
+            Type = a.Type,
+            Status = a.Status
+        }, ct);
     }
 
     public async Task<OneOf<AppointmentCreated, PatientNotFound, TimeConflict, DurationZeroOrLess>> CreateAsync(
-        CreateAppointmentDto dto,
-        CancellationToken ct = default)
+        CreateAppointmentDto dto, CancellationToken ct = default)
     {
         if (dto.DurationInMinutes <= 0)
         {
@@ -98,21 +87,17 @@ public class AppointmentService(
 
         // Check for overlapping appointments
         var endTime = dto.StartTime.AddMinutes(dto.DurationInMinutes);
-        var conflictingAppointments = await context.Appointments
-            .AsNoTracking()
-            .Where(a => a.TherapistId == therapist.Id &&
-                        a.StartTime < endTime &&
-                        a.StartTime.AddMinutes(a.DurationInMinutes) > dto.StartTime)
-            .Select(a => new AppointmentDto
-            {
-                Id = a.Id,
-                PatientId = a.PatientId,
-                StartTime = a.StartTime,
-                DurationInMinutes = a.DurationInMinutes,
-                Type = a.Type,
-                Status = a.Status
-            })
-            .ToListAsync(ct);
+        var conflictingAppointments = await context.Appointments.AsNoTracking().Where(a =>
+            a.TherapistId == therapist.Id && a.StartTime < endTime &&
+            a.StartTime.AddMinutes(a.DurationInMinutes) > dto.StartTime).Select(a => new AppointmentDto
+        {
+            Id = a.Id,
+            PatientId = a.PatientId,
+            StartTime = a.StartTime,
+            DurationInMinutes = a.DurationInMinutes,
+            Type = a.Type,
+            Status = a.Status
+        }).ToListAsync(ct);
 
         if (conflictingAppointments.Count != 0)
         {
@@ -148,10 +133,7 @@ public class AppointmentService(
     }
 
     public async Task<OneOf<AppointmentUpdated, AppointmentNotFound, PatientNotFound, DurationZeroOrLess, TimeConflict>>
-        PatchAsync(
-            int id,
-            PatchAppointmentDto dto,
-            CancellationToken ct = default)
+        PatchAsync(int id, PatchAppointmentDto dto, CancellationToken ct = default)
     {
         var therapistId = await therapistService.GetCurrentTherapistIdOrThrowAsync(ct);
 
@@ -164,10 +146,7 @@ public class AppointmentService(
         }
 
         // If no fields to update, return early
-        if (dto.StartTime is null &&
-            dto.DurationInMinutes is null &&
-            dto.Type is null &&
-            dto.Status is null &&
+        if (dto.StartTime is null && dto.DurationInMinutes is null && dto.Type is null && dto.Status is null &&
             dto.PatientId is null)
         {
             return new AppointmentUpdated();
@@ -191,22 +170,18 @@ public class AppointmentService(
         }
 
         var endTime = newStartTime.AddMinutes(newDurationInMinutes);
-        var conflictingAppointments = await context.Appointments
-            .AsNoTracking()
-            .Where(a => a.Id != id && // Exclude currently updated appointment or it will always conflict
-                        a.TherapistId == therapistId &&
-                        a.StartTime < endTime &&
-                        a.StartTime.AddMinutes(newDurationInMinutes) > newStartTime)
-            .Select(a => new AppointmentDto
-            {
-                Id = a.Id,
-                PatientId = a.PatientId,
-                StartTime = a.StartTime,
-                DurationInMinutes = a.DurationInMinutes,
-                Type = a.Type,
-                Status = a.Status
-            })
-            .ToListAsync(ct);
+        var conflictingAppointments = await context.Appointments.AsNoTracking().Where(a =>
+            a.Id != id && // Exclude currently updated appointment or it will always conflict
+            a.TherapistId == therapistId && a.StartTime < endTime &&
+            a.StartTime.AddMinutes(newDurationInMinutes) > newStartTime).Select(a => new AppointmentDto
+        {
+            Id = a.Id,
+            PatientId = a.PatientId,
+            StartTime = a.StartTime,
+            DurationInMinutes = a.DurationInMinutes,
+            Type = a.Type,
+            Status = a.Status
+        }).ToListAsync(ct);
 
         if (conflictingAppointments.Count != 0)
         {

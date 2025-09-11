@@ -19,11 +19,9 @@ public class AntiforgeryController(IAntiforgery antiforgery) : ControllerBase
 
         if (tokens.RequestToken is null)
         {
-            return Problem(
-                title: "Antiforgery token unavailable",
+            return Problem(title: "Antiforgery token unavailable",
                 detail: "No request token could be generated. Check antiforgery configuration.",
-                statusCode: StatusCodes.Status500InternalServerError
-            );
+                statusCode: StatusCodes.Status500InternalServerError);
         }
 
         return Ok(new TokenResponse(tokens.RequestToken));

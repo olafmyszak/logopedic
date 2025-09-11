@@ -13,8 +13,7 @@ public class AppointmentServiceTests
 {
     private static LogopedicContext CreateContextWith(params Appointment[] appointments)
     {
-        var options = new DbContextOptionsBuilder<LogopedicContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+        var options = new DbContextOptionsBuilder<LogopedicContext>().UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
 
         var ctx = new LogopedicContext(options);
@@ -35,11 +34,7 @@ public class AppointmentServiceTests
     public async Task GetByIdAsync_ReturnsDto_WhenAppointmentExistsAndTherapistMatches()
     {
         // Arrange
-        var builder = new TestDataBuilder()
-            .WithUser()
-            .WithTherapist()
-            .WithPatient()
-            .WithAppointment();
+        var builder = new TestDataBuilder().WithUser().WithTherapist().WithPatient().WithAppointment();
 
         var (ctx, _, therapist, _, appointment) = await builder.BuildAsync();
 
@@ -68,11 +63,7 @@ public class AppointmentServiceTests
     public async Task GetByIdAsync_ReturnsNull_WhenAppointmentExistsAndTherapistDoesNotMatch()
     {
         // Arrange
-        var builder = new TestDataBuilder()
-            .WithUser()
-            .WithTherapist()
-            .WithPatient()
-            .WithAppointment();
+        var builder = new TestDataBuilder().WithUser().WithTherapist().WithPatient().WithAppointment();
 
         var (ctx, _, therapist, _, appointment) = await builder.BuildAsync();
 
@@ -96,11 +87,7 @@ public class AppointmentServiceTests
     public async Task GetByIdAsync_ReturnsNull_WhenAppointmentDoesNotExistAndTherapistMatches()
     {
         // Arrange
-        var builder = new TestDataBuilder()
-            .WithUser()
-            .WithTherapist()
-            .WithPatient()
-            .WithAppointment();
+        var builder = new TestDataBuilder().WithUser().WithTherapist().WithPatient().WithAppointment();
 
         var (ctx, _, therapist, _, appointment) = await builder.BuildAsync();
 
@@ -124,11 +111,7 @@ public class AppointmentServiceTests
     public async Task GetByIdAsync_ReturnsNull_WhenAppointmentDoesNotExistAndTherapistDoesNotMatch()
     {
         // Arrange
-        var builder = new TestDataBuilder()
-            .WithUser()
-            .WithTherapist()
-            .WithPatient()
-            .WithAppointment();
+        var builder = new TestDataBuilder().WithUser().WithTherapist().WithPatient().WithAppointment();
 
         var (ctx, _, therapist, _, appointment) = await builder.BuildAsync();
 
@@ -356,7 +339,7 @@ public class AppointmentServiceTests
             PageNumber = 1,
             PageSize = appointments.Count,
             From = now.AddDays(-2),
-            To = now,
+            To = now
         };
 
         // Expected ids: 12, 13
@@ -425,8 +408,7 @@ public class AppointmentServiceTests
         }
 
         await using var ctx = new LogopedicContext(new DbContextOptionsBuilder<LogopedicContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString())
-            .Options);
+            .UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
 
         ctx.Therapists.Add(therapist);
         ctx.Patients.Add(patient);
@@ -487,8 +469,7 @@ public class AppointmentServiceTests
         }).ToList();
 
         await using var ctx = new LogopedicContext(new DbContextOptionsBuilder<LogopedicContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString())
-            .Options);
+            .UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
 
         ctx.Therapists.Add(therapist);
         ctx.Patients.Add(patient);
@@ -536,31 +517,31 @@ public class AppointmentServiceTests
         // Appointments with overlapping StartTime and Duration to test tie-breaking
         var appointments = new List<Appointment>
         {
-            new Appointment
+            new()
             {
                 Id = 4, StartTime = now.AddHours(2), DurationInMinutes = 30, Type = AppointmentType.Consultation,
                 Status = AppointmentStatus.Scheduled, TherapistId = therapist.Id, Therapist = therapist,
                 PatientId = patient.Id, Patient = patient
             },
-            new Appointment
+            new()
             {
                 Id = 2, StartTime = now.AddHours(2), DurationInMinutes = 45, Type = AppointmentType.Consultation,
                 Status = AppointmentStatus.Scheduled, TherapistId = therapist.Id, Therapist = therapist,
                 PatientId = patient.Id, Patient = patient
             },
-            new Appointment
+            new()
             {
                 Id = 3, StartTime = now.AddHours(1), DurationInMinutes = 60, Type = AppointmentType.Consultation,
                 Status = AppointmentStatus.Scheduled, TherapistId = therapist.Id, Therapist = therapist,
                 PatientId = patient.Id, Patient = patient
             },
-            new Appointment
+            new()
             {
                 Id = 1, StartTime = now.AddHours(1), DurationInMinutes = 30, Type = AppointmentType.Consultation,
                 Status = AppointmentStatus.Scheduled, TherapistId = therapist.Id, Therapist = therapist,
                 PatientId = patient.Id, Patient = patient
             },
-            new Appointment
+            new()
             {
                 Id = 5, StartTime = now.AddHours(1), DurationInMinutes = 30, Type = AppointmentType.Consultation,
                 Status = AppointmentStatus.Scheduled, TherapistId = therapist.Id, Therapist = therapist,
@@ -569,8 +550,7 @@ public class AppointmentServiceTests
         };
 
         await using var ctx = new LogopedicContext(new DbContextOptionsBuilder<LogopedicContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString())
-            .Options);
+            .UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
 
         ctx.Therapists.Add(therapist);
         ctx.Patients.Add(patient);
@@ -617,31 +597,31 @@ public class AppointmentServiceTests
         // Appointments with overlapping StartTime and Duration to test tie-breaking
         var appointments = new List<Appointment>
         {
-            new Appointment
+            new()
             {
                 Id = 4, StartTime = now.AddHours(2), DurationInMinutes = 30, Type = AppointmentType.Consultation,
                 Status = AppointmentStatus.Scheduled, TherapistId = therapist.Id, Therapist = therapist,
                 PatientId = patient.Id, Patient = patient
             },
-            new Appointment
+            new()
             {
                 Id = 2, StartTime = now.AddHours(2), DurationInMinutes = 45, Type = AppointmentType.Consultation,
                 Status = AppointmentStatus.Scheduled, TherapistId = therapist.Id, Therapist = therapist,
                 PatientId = patient.Id, Patient = patient
             },
-            new Appointment
+            new()
             {
                 Id = 3, StartTime = now.AddHours(1), DurationInMinutes = 60, Type = AppointmentType.Consultation,
                 Status = AppointmentStatus.Scheduled, TherapistId = therapist.Id, Therapist = therapist,
                 PatientId = patient.Id, Patient = patient
             },
-            new Appointment
+            new()
             {
                 Id = 5, StartTime = now.AddHours(1), DurationInMinutes = 30, Type = AppointmentType.Consultation,
                 Status = AppointmentStatus.Scheduled, TherapistId = therapist.Id, Therapist = therapist,
                 PatientId = patient.Id, Patient = patient
             },
-            new Appointment
+            new()
             {
                 Id = 1, StartTime = now.AddHours(1), DurationInMinutes = 30, Type = AppointmentType.Consultation,
                 Status = AppointmentStatus.Scheduled, TherapistId = therapist.Id, Therapist = therapist,
@@ -650,8 +630,7 @@ public class AppointmentServiceTests
         };
 
         await using var ctx = new LogopedicContext(new DbContextOptionsBuilder<LogopedicContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString())
-            .Options);
+            .UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
 
         ctx.Therapists.Add(therapist);
         ctx.Patients.Add(patient);
@@ -684,10 +663,7 @@ public class AppointmentServiceTests
     public async Task CreateAsync_ReturnsAppointmentCreated_WhenDtoIsValid()
     {
         var (ctx, _, therapist, patient, _) = await new TestDataBuilder()
-            .WithUser()
-            .WithPatient()
-            .WithPatient()
-            .BuildAsync();
+            .WithUser().WithPatient().WithPatient().BuildAsync();
 
         // Arrange
         var dto = new CreateAppointmentDto
@@ -695,7 +671,7 @@ public class AppointmentServiceTests
             StartTime = DateTimeOffset.UtcNow.AddDays(1),
             DurationInMinutes = 45,
             Type = AppointmentType.Diagnosis,
-            PatientId = patient!.Id,
+            PatientId = patient!.Id
         };
 
         var therapistService = Substitute.For<ITherapistService>();
@@ -703,8 +679,7 @@ public class AppointmentServiceTests
             .Returns(Task.FromResult(therapist)!);
 
         var patientService = Substitute.For<IPatientService>();
-        patientService.GetByIdAsync(patient.Id)!
-            .Returns(Task.FromResult(patient));
+        patientService.GetByIdAsync(patient.Id)!.Returns(Task.FromResult(patient));
 
         var appointmentService = new AppointmentService(ctx, therapistService, patientService);
 
@@ -719,10 +694,7 @@ public class AppointmentServiceTests
     public async Task CreateAsync_ReturnsPatientNotFound_WhenPatientIdDoesNotExist()
     {
         var (ctx, _, therapist, patient, _) = await new TestDataBuilder()
-            .WithUser()
-            .WithPatient()
-            .WithPatient()
-            .BuildAsync();
+            .WithUser().WithPatient().WithPatient().BuildAsync();
 
         // Arrange
         var dto = new CreateAppointmentDto
@@ -730,7 +702,7 @@ public class AppointmentServiceTests
             StartTime = DateTimeOffset.UtcNow.AddDays(1),
             DurationInMinutes = 45,
             Type = AppointmentType.Diagnosis,
-            PatientId = patient!.Id - 1, // Wrong patientId
+            PatientId = patient!.Id - 1 // Wrong patientId
         };
 
         var therapistService = Substitute.For<ITherapistService>();
@@ -738,8 +710,7 @@ public class AppointmentServiceTests
             .Returns(Task.FromResult(therapist)!);
 
         var patientService = Substitute.For<IPatientService>();
-        patientService.GetByIdAsync(patient.Id)!
-            .Returns(Task.FromResult(patient));
+        patientService.GetByIdAsync(patient.Id)!.Returns(Task.FromResult(patient));
 
         var appointmentService = new AppointmentService(ctx, therapistService, patientService);
 
@@ -753,12 +724,8 @@ public class AppointmentServiceTests
     [Fact]
     public async Task CreateAsync_ReturnsTimeConflict_WhenRequestedTimeConflictsWithExistingAppointments()
     {
-        var (ctx, _, therapist, patient, appointment) = await new TestDataBuilder()
-            .WithUser()
-            .WithPatient()
-            .WithPatient()
-            .WithAppointment()
-            .BuildAsync();
+        var (ctx, _, therapist, patient, appointment) = await new TestDataBuilder().WithUser().WithPatient()
+            .WithPatient().WithAppointment().BuildAsync();
 
         // Arrange
         var dto = new CreateAppointmentDto
@@ -774,8 +741,7 @@ public class AppointmentServiceTests
             .Returns(Task.FromResult(therapist)!);
 
         var patientService = Substitute.For<IPatientService>();
-        patientService.GetByIdAsync(patient.Id)!
-            .Returns(Task.FromResult(patient));
+        patientService.GetByIdAsync(patient.Id)!.Returns(Task.FromResult(patient));
 
         var appointmentService = new AppointmentService(ctx, therapistService, patientService);
 
@@ -790,10 +756,7 @@ public class AppointmentServiceTests
     public async Task CreateAsync_ReturnsDurationZeroOrLess_WhenDurationIsZeroOrLess()
     {
         var (ctx, _, therapist, patient, _) = await new TestDataBuilder()
-            .WithUser()
-            .WithPatient()
-            .WithPatient()
-            .BuildAsync();
+            .WithUser().WithPatient().WithPatient().BuildAsync();
 
         // Arrange
         var dto1 = new CreateAppointmentDto
@@ -801,7 +764,7 @@ public class AppointmentServiceTests
             StartTime = DateTimeOffset.UtcNow.AddDays(1),
             DurationInMinutes = 0,
             Type = AppointmentType.Diagnosis,
-            PatientId = patient!.Id,
+            PatientId = patient!.Id
         };
 
         var dto2 = new CreateAppointmentDto
@@ -809,7 +772,7 @@ public class AppointmentServiceTests
             StartTime = DateTimeOffset.UtcNow.AddDays(3),
             DurationInMinutes = -5,
             Type = AppointmentType.Diagnosis,
-            PatientId = patient.Id,
+            PatientId = patient.Id
         };
 
         var therapistService = Substitute.For<ITherapistService>();
@@ -817,8 +780,7 @@ public class AppointmentServiceTests
             .Returns(Task.FromResult(therapist)!);
 
         var patientService = Substitute.For<IPatientService>();
-        patientService.GetByIdAsync(patient.Id)!
-            .Returns(Task.FromResult(patient));
+        patientService.GetByIdAsync(patient.Id)!.Returns(Task.FromResult(patient));
 
         var appointmentService = new AppointmentService(ctx, therapistService, patientService);
 
@@ -836,15 +798,6 @@ public class AppointmentServiceTests
 
 public class AppointmentFilterTests
 {
-    // Dummy appointment entity for tests
-    private class Appointment
-    {
-        public int Id { get; set; }
-        public int PatientId { get; set; }
-        public AppointmentType Type { get; set; }
-        public AppointmentStatus Status { get; set; }
-    }
-
     private readonly List<Appointment> _appointments =
     [
         new()
@@ -852,7 +805,7 @@ public class AppointmentFilterTests
             Id = 1,
             PatientId = 10,
             Status = AppointmentStatus.Scheduled,
-            Type = AppointmentType.Consultation,
+            Type = AppointmentType.Consultation
         },
 
         new()
@@ -860,7 +813,7 @@ public class AppointmentFilterTests
             Id = 2,
             PatientId = 11,
             Status = AppointmentStatus.Completed,
-            Type = AppointmentType.Diagnosis,
+            Type = AppointmentType.Diagnosis
         },
 
         new()
@@ -868,7 +821,7 @@ public class AppointmentFilterTests
             Id = 3,
             PatientId = 10,
             Status = AppointmentStatus.Cancelled,
-            Type = AppointmentType.Therapy,
+            Type = AppointmentType.Therapy
         },
 
         new()
@@ -876,7 +829,7 @@ public class AppointmentFilterTests
             Id = 4,
             PatientId = 12,
             Status = AppointmentStatus.Scheduled,
-            Type = AppointmentType.Diagnosis,
+            Type = AppointmentType.Diagnosis
         }
     ];
 
@@ -961,20 +914,19 @@ public class AppointmentFilterTests
 
         return baseQuery;
     }
-}
 
-public class AppointmentSortingTests
-{
     // Dummy appointment entity for tests
     private class Appointment
     {
         public int Id { get; set; }
-        public DateTimeOffset StartTime { get; set; }
-        public int DurationInMinutes { get; set; }
+        public int PatientId { get; set; }
         public AppointmentType Type { get; set; }
         public AppointmentStatus Status { get; set; }
     }
+}
 
+public class AppointmentSortingTests
+{
     private readonly List<Appointment> _appointments =
     [
         new()
@@ -1119,5 +1071,15 @@ public class AppointmentSortingTests
         }
 
         return ordered;
+    }
+
+    // Dummy appointment entity for tests
+    private class Appointment
+    {
+        public int Id { get; set; }
+        public DateTimeOffset StartTime { get; set; }
+        public int DurationInMinutes { get; set; }
+        public AppointmentType Type { get; set; }
+        public AppointmentStatus Status { get; set; }
     }
 }

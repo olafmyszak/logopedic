@@ -1,5 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
-using LogopedicBackend.Constants;
+﻿using LogopedicBackend.Constants;
 using LogopedicBackend.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

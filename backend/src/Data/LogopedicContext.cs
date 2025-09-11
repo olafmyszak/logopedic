@@ -4,8 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LogopedicBackend.Data;
 
-public class LogopedicContext(DbContextOptions<LogopedicContext> options)
-    : IdentityDbContext<User>(options)
+public class LogopedicContext(DbContextOptions<LogopedicContext> options) : IdentityDbContext<User>(options)
 {
     public DbSet<Therapist> Therapists { get; set; }
     public DbSet<Patient> Patients { get; set; }

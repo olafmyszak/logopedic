@@ -1,9 +1,9 @@
-﻿using LogopedicBackend.Data;
+﻿using Bogus;
+using LogopedicBackend.Constants;
+using LogopedicBackend.Data;
+using LogopedicBackend.Enums;
 using LogopedicBackend.Models;
 using Microsoft.AspNetCore.Identity;
-using Bogus;
-using LogopedicBackend.Constants;
-using LogopedicBackend.Enums;
 
 namespace LogopedicBackend.IntegrationTests;
 
@@ -16,9 +16,7 @@ public class TestDataSeeder(LogopedicContext context, UserManager<User> userMana
     public List<Appointment> Appointments { get; } = [];
     public User TestUser { get; private set; } = null!;
 
-    public async Task SeedAsync(
-        string defaultPassword = "P@ssword2",
-        int patientsPerTherapists = 3,
+    public async Task SeedAsync(string defaultPassword = "P@ssword2", int patientsPerTherapists = 3,
         int appointmentsPerPatient = 3)
     {
         await SeedUsersAndTherapists(defaultPassword);
@@ -99,20 +97,11 @@ public class TestDataSeeder(LogopedicContext context, UserManager<User> userMana
 
     private async Task SeedPatients(int patientsPerTherapists)
     {
-        var patientFaker = new Faker<Patient>(Locale)
-            .RuleFor(p => p.FullName, f => f.Name.FullName())
+        var patientFaker = new Faker<Patient>(Locale).RuleFor(p => p.FullName, f => f.Name.FullName())
             .RuleFor(p => p.DateOfBirth,
-                f => DateOnly.FromDateTime(f.Date.Between(
-                    DateTime.Today.AddYears(-25),
-                    DateTime.Today.AddYears(-5))))
-            .RuleFor(p => p.ContactInfo,
-                f => f.Random.Bool()
-                    ? f.Person.Email
-                    : f.Phone.PhoneNumber())
-            .RuleFor(p => p.Notes,
-                f => f.Random.Bool(0.25f)
-                    ? f.Lorem.Sentence()
-                    : null);
+                f => DateOnly.FromDateTime(f.Date.Between(DateTime.Today.AddYears(-25), DateTime.Today.AddYears(-5))))
+            .RuleFor(p => p.ContactInfo, f => f.Random.Bool() ? f.Person.Email : f.Phone.PhoneNumber())
+            .RuleFor(p => p.Notes, f => f.Random.Bool(0.25f) ? f.Lorem.Sentence() : null);
 
         foreach (var therapist in Therapists)
         {
@@ -135,11 +124,8 @@ public class TestDataSeeder(LogopedicContext context, UserManager<User> userMana
     {
         var appointmentFaker = new Faker<Appointment>(Locale)
             .RuleFor(a => a.StartTime,
-                f => DateTimeOffset.UtcNow
-                    .AddDays(f.Random.Int(-30, 60))
-                    .AddHours(f.Random.Int(8, 17)))
-            .RuleFor(a => a.DurationInMinutes,
-                f => f.Random.ListItem([15, 30, 45, 60, 90]))
+                f => DateTimeOffset.UtcNow.AddDays(f.Random.Int(-30, 60)).AddHours(f.Random.Int(8, 17)))
+            .RuleFor(a => a.DurationInMinutes, f => f.Random.ListItem([15, 30, 45, 60, 90]))
             .RuleFor(a => a.Type, f => f.PickRandom<AppointmentType>())
             .RuleFor(a => a.Status, f => f.PickRandom<AppointmentStatus>());
 

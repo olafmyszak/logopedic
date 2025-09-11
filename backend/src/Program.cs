@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using System.Text.Json.Serialization;
 using LogopedicBackend.Data;
 using LogopedicBackend.Exceptions;
@@ -17,36 +16,31 @@ builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 
 builder.Services.AddAuthorization();
-builder.Services.AddAuthentication().AddCookie(
-    IdentityConstants.ApplicationScheme, options =>
+builder.Services.AddAuthentication().AddCookie(IdentityConstants.ApplicationScheme, options =>
+{
+    options.Events.OnRedirectToLogin = ctx =>
     {
-        options.Events.OnRedirectToLogin = ctx =>
-        {
-            ctx.Response.StatusCode = StatusCodes.Status401Unauthorized;
-            return Task.CompletedTask;
-        };
-        options.Events.OnRedirectToAccessDenied = ctx =>
-        {
-            ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
-            return Task.CompletedTask;
-        };
-    });
+        ctx.Response.StatusCode = StatusCodes.Status401Unauthorized;
+        return Task.CompletedTask;
+    };
+    options.Events.OnRedirectToAccessDenied = ctx =>
+    {
+        ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
+        return Task.CompletedTask;
+    };
+});
 
 builder.Services.AddIdentityCore<User>(options =>
-    {
-        options.Password.RequireNonAlphanumeric = false;
-        options.Password.RequireDigit = false;
-        options.Password.RequireLowercase = false;
-        options.Password.RequireUppercase = false;
-        options.Password.RequiredLength = 8;
-    })
-    .AddSignInManager()
-    .AddRoles<IdentityRole>()
-    .AddEntityFrameworkStores<LogopedicContext>();
+{
+    options.Password.RequireNonAlphanumeric = false;
+    options.Password.RequireDigit = false;
+    options.Password.RequireLowercase = false;
+    options.Password.RequireUppercase = false;
+    options.Password.RequiredLength = 8;
+}).AddSignInManager().AddRoles<IdentityRole>().AddEntityFrameworkStores<LogopedicContext>();
 
 builder.Services.AddDbContext<LogopedicContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("Default"))
-);
+    options.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
 
 builder.Services.AddAntiforgery(options =>
 {
@@ -71,13 +65,11 @@ else
 
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("LocalDev", policy =>
-    {
-        policy.WithOrigins("http://localhost:4200")
-            .AllowAnyHeader()
-            .AllowAnyMethod()
-            .AllowCredentials();
-    });
+    options.AddPolicy("LocalDev",
+        policy =>
+        {
+            policy.WithOrigins("http://localhost:4200").AllowAnyHeader().AllowAnyMethod().AllowCredentials();
+        });
 });
 
 builder.Services.AddScoped<AdminService>();
@@ -89,9 +81,7 @@ builder.Services.AddScoped<IAppointmentService, AppointmentService>();
 builder.Services.AddScoped<IPatientService, PatientService>();
 
 var keysFolder = new DirectoryInfo("/keys");
-builder.Services.AddDataProtection()
-    .PersistKeysToFileSystem(keysFolder)
-    .SetApplicationName("Logopedic");
+builder.Services.AddDataProtection().PersistKeysToFileSystem(keysFolder).SetApplicationName("Logopedic");
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>

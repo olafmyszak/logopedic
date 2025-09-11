@@ -7,11 +7,6 @@ namespace LogopedicBackend.IntegrationTests;
 
 public class BaseIntegrationTest : IClassFixture<IntegrationTestWebAppFactory>, IAsyncLifetime
 {
-    protected TestDataSeeder DataSeeder { get; }
-    protected HttpClient Client { get; private set; }
-    protected LogopedicContext DbContext { get; }
-    protected ITestOutputHelper TestOutputHelper { get; }
-
     protected BaseIntegrationTest(IntegrationTestWebAppFactory factory, ITestOutputHelper testOutputHelper)
     {
         var scope = factory.Services.CreateScope();
@@ -22,6 +17,11 @@ public class BaseIntegrationTest : IClassFixture<IntegrationTestWebAppFactory>, 
         Client = factory.CreateClient();
         TestOutputHelper = testOutputHelper;
     }
+
+    protected TestDataSeeder DataSeeder { get; }
+    protected HttpClient Client { get; private set; }
+    protected LogopedicContext DbContext { get; }
+    protected ITestOutputHelper TestOutputHelper { get; }
 
     public Task InitializeAsync()
     {

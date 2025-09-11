@@ -22,22 +22,19 @@ public class PatientsController(IPatientService patientService) : ControllerBase
     {
         var result = await patientService.QueryAsync(query, ct);
 
-        return result.Match<ActionResult<PagedResultDto<PatientDto>>>(
-            pagedResult => Ok(pagedResult),
-            pageSizeError => ValidationProblem(
-                new ValidationProblemDetails(new Dictionary<string, string[]>
-                {
-                    ["pageSize"] =
-                    [
-                        $"Requested page size {pageSizeError.Requested} is not in the required range: [{pageSizeError.Min}, {pageSizeError.Max}]"
-                    ]
-                })
-                {
-                    Title = "Invalid page size",
-                    Status = StatusCodes.Status400BadRequest,
-                    Instance = HttpContext.Request.Path
-                })
-        );
+        return result.Match<ActionResult<PagedResultDto<PatientDto>>>(pagedResult => Ok(pagedResult), pageSizeError =>
+            ValidationProblem(new ValidationProblemDetails(new Dictionary<string, string[]>
+            {
+                ["pageSize"] =
+                [
+                    $"Requested page size {pageSizeError.Requested} is not in the required range: [{pageSizeError.Min}, {pageSizeError.Max}]"
+                ]
+            })
+            {
+                Title = "Invalid page size",
+                Status = StatusCodes.Status400BadRequest,
+                Instance = HttpContext.Request.Path
+            }));
     }
 
     [HttpGet("{id:int}")]
@@ -49,12 +46,8 @@ public class PatientsController(IPatientService patientService) : ControllerBase
 
         if (patient is null)
         {
-            return Problem(
-                $"Patient with id {id} does not exist or does not belong to the current user",
-                HttpContext.Request.Path,
-                StatusCodes.Status404NotFound,
-                "Patient not found"
-            );
+            return Problem($"Patient with id {id} does not exist or does not belong to the current user",
+                HttpContext.Request.Path, StatusCodes.Status404NotFound, "Patient not found");
         }
 
         return Ok(patient);
@@ -75,14 +68,10 @@ public class PatientsController(IPatientService patientService) : ControllerBase
     {
         var result = await patientService.UpdateAsync(id, dto, ct);
 
-        return result.Match<IActionResult>(
-            _ => NoContent(),
+        return result.Match<IActionResult>(_ => NoContent(),
             patientNotFound => Problem(
                 $"Patient with id {patientNotFound.PatientId} does not exist or does not belong to the current user",
-                HttpContext.Request.Path,
-                StatusCodes.Status404NotFound,
-                "Patient not found"
-            ));
+                HttpContext.Request.Path, StatusCodes.Status404NotFound, "Patient not found"));
     }
 
     [HttpDelete("{id:int}")]
@@ -94,12 +83,8 @@ public class PatientsController(IPatientService patientService) : ControllerBase
 
         if (!deleted)
         {
-            return Problem(
-                $"Patient with id {id} does not exist or does not belong to the current user",
-                HttpContext.Request.Path,
-                StatusCodes.Status404NotFound,
-                "Patient not found"
-            );
+            return Problem($"Patient with id {id} does not exist or does not belong to the current user",
+                HttpContext.Request.Path, StatusCodes.Status404NotFound, "Patient not found");
         }
 
         return NoContent();

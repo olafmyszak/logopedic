@@ -13,8 +13,7 @@ namespace LogopedicBackend.Controllers;
 public class AccountController(
     LogopedicContext context,
     UserManager<User> userManager,
-    SignInManager<User> signInManager)
-    : ControllerBase
+    SignInManager<User> signInManager) : ControllerBase
 {
     [HttpPost("register")]
     [ProducesResponseType(StatusCodes.Status200OK)]

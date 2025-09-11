@@ -9,17 +9,16 @@ using Xunit.Abstractions;
 
 namespace LogopedicBackend.IntegrationTests;
 
-public class AppointmentsControllerTests(
-    IntegrationTestWebAppFactory factory,
-    ITestOutputHelper testOutputHelper) : BaseIntegrationTest(factory, testOutputHelper)
+public class AppointmentsControllerTests(IntegrationTestWebAppFactory factory, ITestOutputHelper testOutputHelper)
+    : BaseIntegrationTest(factory, testOutputHelper)
 {
+    private const string AppointmentsPath = "/api/appointments";
+
     private readonly JsonSerializerOptions _jsonSerializerOptions = new()
     {
         PropertyNameCaseInsensitive = true,
         Converters = { new JsonStringEnumConverter() }
     };
-
-    private const string AppointmentsPath = "/api/appointments";
 
     [Fact]
     public async Task GetById_Returns200AndAppointmentDto_WhenAppointmentExists()
@@ -56,8 +55,8 @@ public class AppointmentsControllerTests(
     public async Task GetById_Returns404_WhenAppointmentDoesNotBelongToCurrentTherapist()
     {
         // Arrange
-        var notCurrentTherapist = DataSeeder.Therapists.Single(t => t.UserId != DataSeeder.TestUser.Id);
-        var appointmentId = notCurrentTherapist.Appointments.Select(a => a.Id).First();
+        var therapist = DataSeeder.Therapists.Single(t => t.UserId == DataSeeder.TestUser.Id);
+        var appointmentId = DbContext.Appointments.Where(a => a.TherapistId != therapist.Id).Select(a => a.Id).First();
 
         // Act
         var response = await Client.GetAsync($"{AppointmentsPath}/{appointmentId}");
@@ -120,14 +119,9 @@ public class AppointmentsControllerTests(
 
         if (paged.Items.Count >= 2)
         {
-            var ordered = paged.Items
-                .Select(i => i.StartTime)
-                .OrderBy(d => d)
-                .ToList();
+            var ordered = paged.Items.Select(i => i.StartTime).OrderBy(d => d).ToList();
 
-            var actual = paged.Items
-                .Select(i => i.StartTime)
-                .ToList();
+            var actual = paged.Items.Select(i => i.StartTime).ToList();
 
             Assert.Equal(ordered, actual);
         }
@@ -328,7 +322,7 @@ public class AppointmentsControllerTests(
     }
 
     [Fact]
-    public async Task Patch_ReturnsNoContentAndUpdatesAppointment_WhenIdAndDtoValid()
+    public async Task Patch_Returns204AndUpdatesAppointment_WhenIdAndDtoValid()
     {
         // Arrange
         var therapist = DataSeeder.Therapists.Single(t => t.UserId == DataSeeder.TestUser.Id);
@@ -338,7 +332,7 @@ public class AppointmentsControllerTests(
         {
             DurationInMinutes = oldAppointment.DurationInMinutes - 5,
             Status = AppointmentStatus.NoShow,
-            Type = AppointmentType.Therapy,
+            Type = AppointmentType.Therapy
         };
 
         // Act
@@ -350,8 +344,7 @@ public class AppointmentsControllerTests(
         // Use AsNoTracking() so EF doesn't return the already-tracked (stale) entity.
         // This forces a fresh read from the database after the PATCH.
         var updatedAppointment = await DbContext.Appointments
-            .AsNoTracking()
-            .SingleAsync(a => a.Id == oldAppointment.Id);
+            .AsNoTracking().SingleAsync(a => a.Id == oldAppointment.Id);
 
         Assert.NotNull(updatedAppointment);
         Assert.Equal(dto.DurationInMinutes, updatedAppointment.DurationInMinutes);
@@ -382,7 +375,7 @@ public class AppointmentsControllerTests(
     {
         // Arrange
         var therapist = DataSeeder.Therapists.Single(t => t.UserId == DataSeeder.TestUser.Id);
-        var appointmentId = therapist.Appointments.Select(a => a.Id).First();
+        var appointment = therapist.Appointments.First();
 
         var dto = new PatchAppointmentDto
         {
@@ -390,13 +383,21 @@ public class AppointmentsControllerTests(
         };
 
         // Act
-        var response = await Client.PatchAsJsonAsync($"{AppointmentsPath}/{appointmentId}", dto);
+        var response = await Client.PatchAsJsonAsync($"{AppointmentsPath}/{appointment.Id}", dto);
 
         // Assert
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
 
         var problemDetails = await response.Content.ReadFromJsonAsync<ProblemDetails>(_jsonSerializerOptions);
         Assert.NotNull(problemDetails);
+
+        // Assert appointment was not changed
+        var updatedAppointment = await DbContext.Appointments
+            .AsNoTracking().SingleOrDefaultAsync(a => a.Id == appointment.Id);
+        Assert.NotNull(updatedAppointment);
+        Assert.Equal(appointment.DurationInMinutes, updatedAppointment.DurationInMinutes);
+        Assert.Equal(appointment.Status, updatedAppointment.Status);
+        Assert.Equal(appointment.Type, updatedAppointment.Type);
     }
 
     [Fact]
@@ -404,7 +405,7 @@ public class AppointmentsControllerTests(
     {
         // Arrange
         var therapist = DataSeeder.Therapists.Single(t => t.UserId == DataSeeder.TestUser.Id);
-        var appointmentId = therapist.Appointments.Select(a => a.Id).First();
+        var appointment = therapist.Appointments.First();
 
         var dto = new PatchAppointmentDto
         {
@@ -412,13 +413,20 @@ public class AppointmentsControllerTests(
         };
 
         // Act
-        var response = await Client.PatchAsJsonAsync($"{AppointmentsPath}/{appointmentId}", dto);
+        var response = await Client.PatchAsJsonAsync($"{AppointmentsPath}/{appointment.Id}", dto);
 
         // Assert
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
         var problemDetails = await response.Content.ReadFromJsonAsync<ValidationProblemDetails>(_jsonSerializerOptions);
         Assert.NotNull(problemDetails);
+
+        // Assert appointment was not changed
+        var updatedAppointment = await DbContext.Appointments
+            .AsNoTracking().SingleOrDefaultAsync(a => a.Id == appointment.Id);
+        Assert.NotNull(updatedAppointment);
+        Assert.Equal(appointment.DurationInMinutes, updatedAppointment.DurationInMinutes);
+        Assert.Equal(appointment.Status, updatedAppointment.Status);
     }
 
     [Fact]
@@ -426,7 +434,7 @@ public class AppointmentsControllerTests(
     {
         // Arrange
         var therapist = DataSeeder.Therapists.Single(t => t.UserId == DataSeeder.TestUser.Id);
-        var appointmentId = therapist.Appointments.Select(a => a.Id).First();
+        var appointment = therapist.Appointments.First();
         var minDate = therapist.Appointments.Min(a => a.StartTime);
 
         var dto = new PatchAppointmentDto
@@ -436,10 +444,67 @@ public class AppointmentsControllerTests(
         };
 
         // Act
-        var response = await Client.PatchAsJsonAsync($"{AppointmentsPath}/{appointmentId}", dto);
+        var response = await Client.PatchAsJsonAsync($"{AppointmentsPath}/{appointment.Id}", dto);
 
         // Assert
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+
+        var problemDetails = await response.Content.ReadFromJsonAsync<ProblemDetails>(_jsonSerializerOptions);
+        Assert.NotNull(problemDetails);
+
+        // Assert appointment was not changed
+        var updatedAppointment = await DbContext.Appointments
+            .AsNoTracking().SingleOrDefaultAsync(a => a.Id == appointment.Id);
+        Assert.NotNull(updatedAppointment);
+        Assert.Equal(appointment.DurationInMinutes, updatedAppointment.DurationInMinutes);
+        Assert.Equal(appointment.Status, updatedAppointment.Status);
+    }
+
+    [Fact]
+    public async Task Delete_Returns204AndDeletesAppointment_WhenIdIsValid()
+    {
+        // Arrange
+        var therapist = DataSeeder.Therapists.Single(t => t.UserId == DataSeeder.TestUser.Id);
+        var appointmentId = therapist.Appointments.Select(a => a.Id).First();
+
+        // Act
+        var response = await Client.DeleteAsync($"{AppointmentsPath}/{appointmentId}");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+
+        var appointmentExists = await DbContext.Appointments.AsNoTracking().AnyAsync(a => a.Id == appointmentId);
+        Assert.False(appointmentExists);
+    }
+
+    [Fact]
+    public async Task Delete_Returns404_WhenIdDoesNotExist()
+    {
+        // Arrange
+        const int appointmentId = -1;
+
+        // Act
+        var response = await Client.DeleteAsync($"{AppointmentsPath}/{appointmentId}");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+
+        var problemDetails = await response.Content.ReadFromJsonAsync<ProblemDetails>(_jsonSerializerOptions);
+        Assert.NotNull(problemDetails);
+    }
+
+    [Fact]
+    public async Task Delete_Returns404_WhenIdDoesNotBelongToTherapist()
+    {
+        // Arrange
+        var therapist = DataSeeder.Therapists.Single(t => t.UserId == DataSeeder.TestUser.Id);
+        var appointmentId = DbContext.Appointments.Where(a => a.TherapistId != therapist.Id).Select(a => a.Id).First();
+
+        // Act
+        var response = await Client.DeleteAsync($"{AppointmentsPath}/{appointmentId}");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
 
         var problemDetails = await response.Content.ReadFromJsonAsync<ProblemDetails>(_jsonSerializerOptions);
         Assert.NotNull(problemDetails);

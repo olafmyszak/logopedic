@@ -16,19 +16,13 @@ public class TherapistConfiguration : IEntityTypeConfiguration<Therapist>
 
         builder.HasKey(t => t.Id);
 
-        builder.HasOne(t => t.User)
-            .WithOne() // no navigation property on IdentityUser
-            .HasForeignKey<Therapist>(t => t.UserId)
+        builder.HasOne(t => t.User).WithOne() // no navigation property on IdentityUser
+            .HasForeignKey<Therapist>(t => t.UserId).OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasMany(t => t.Patients).WithOne(p => p.Therapist).HasForeignKey(p => p.TherapistId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.HasMany(t => t.Patients)
-            .WithOne(p => p.Therapist)
-            .HasForeignKey(p => p.TherapistId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        builder.HasMany(t => t.Appointments)
-            .WithOne(a => a.Therapist)
-            .HasForeignKey(a => a.TherapistId)
+        builder.HasMany(t => t.Appointments).WithOne(a => a.Therapist).HasForeignKey(a => a.TherapistId)
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasIndex(t => t.UserId).IsUnique();
