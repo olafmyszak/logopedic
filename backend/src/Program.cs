@@ -16,28 +16,34 @@ builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 
 builder.Services.AddAuthorization();
-builder.Services.AddAuthentication().AddCookie(IdentityConstants.ApplicationScheme, options =>
-{
-    options.Events.OnRedirectToLogin = ctx =>
+builder.Services
+    .AddAuthentication()
+    .AddCookie(IdentityConstants.ApplicationScheme, options =>
     {
-        ctx.Response.StatusCode = StatusCodes.Status401Unauthorized;
-        return Task.CompletedTask;
-    };
-    options.Events.OnRedirectToAccessDenied = ctx =>
-    {
-        ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
-        return Task.CompletedTask;
-    };
-});
+        options.Events.OnRedirectToLogin = ctx =>
+        {
+            ctx.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            return Task.CompletedTask;
+        };
+        options.Events.OnRedirectToAccessDenied = ctx =>
+        {
+            ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
+            return Task.CompletedTask;
+        };
+    });
 
-builder.Services.AddIdentityCore<User>(options =>
-{
-    options.Password.RequireNonAlphanumeric = false;
-    options.Password.RequireDigit = false;
-    options.Password.RequireLowercase = false;
-    options.Password.RequireUppercase = false;
-    options.Password.RequiredLength = 8;
-}).AddSignInManager().AddRoles<IdentityRole>().AddEntityFrameworkStores<LogopedicContext>();
+builder.Services
+    .AddIdentityCore<User>(options =>
+    {
+        options.Password.RequireNonAlphanumeric = false;
+        options.Password.RequireDigit = false;
+        options.Password.RequireLowercase = false;
+        options.Password.RequireUppercase = false;
+        options.Password.RequiredLength = 8;
+    })
+    .AddSignInManager()
+    .AddRoles<IdentityRole>()
+    .AddEntityFrameworkStores<LogopedicContext>();
 
 builder.Services.AddDbContext<LogopedicContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("Default")));

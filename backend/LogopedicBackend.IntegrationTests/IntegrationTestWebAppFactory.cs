@@ -11,7 +11,10 @@ namespace LogopedicBackend.IntegrationTests;
 public class IntegrationTestWebAppFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
     private readonly PostgreSqlContainer _dbContainer = new PostgreSqlBuilder().WithImage("postgres:17")
-        .WithDatabase("test").WithUsername("postgres").WithPassword("postgres").Build();
+        .WithDatabase("test")
+        .WithUsername("postgres")
+        .WithPassword("postgres")
+        .Build();
 
     public Task InitializeAsync()
     {

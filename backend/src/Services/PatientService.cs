@@ -24,7 +24,8 @@ public class PatientService(LogopedicContext context, ITherapistService therapis
     {
         var therapistId = await therapistService.GetCurrentTherapistIdOrThrowAsync(ct);
 
-        return await context.Patients.AsNoTracking()
+        return await context.Patients
+            .AsNoTracking()
             .AnyAsync(p => p.Id == patientId && p.TherapistId == therapistId, ct);
     }
 
@@ -39,30 +40,35 @@ public class PatientService(LogopedicContext context, ITherapistService therapis
     {
         var therapistId = await therapistService.GetCurrentTherapistIdOrThrowAsync(ct);
 
-        return await context.Patients.Where(p => p.Id == patientId && p.TherapistId == therapistId).Select(p =>
-            new PatientDto
+        return await context.Patients
+            .Where(p => p.Id == patientId && p.TherapistId == therapistId)
+            .Select(p => new PatientDto
             {
                 Id = p.Id,
                 FullName = p.FullName,
                 DateOfBirth = p.DateOfBirth,
                 ContactInfo = p.ContactInfo,
                 Notes = p.Notes
-            }).SingleOrDefaultAsync(ct);
+            })
+            .SingleOrDefaultAsync(ct);
     }
 
     public async Task<IReadOnlyList<PatientDto>> GetAllAsync(CancellationToken ct = default)
     {
         var therapistId = await therapistService.GetCurrentTherapistIdOrThrowAsync(ct);
 
-        var patients = await context.Patients.AsNoTracking().Where(p => p.TherapistId == therapistId).Select(p =>
-            new PatientDto
+        var patients = await context.Patients
+            .AsNoTracking()
+            .Where(p => p.TherapistId == therapistId)
+            .Select(p => new PatientDto
             {
                 Id = p.Id,
                 FullName = p.FullName,
                 DateOfBirth = p.DateOfBirth,
                 ContactInfo = p.ContactInfo,
                 Notes = p.Notes
-            }).ToListAsync(ct);
+            })
+            .ToListAsync(ct);
 
         return patients;
     }
@@ -100,14 +106,17 @@ public class PatientService(LogopedicContext context, ITherapistService therapis
         var totalCount = await baseQuery.CountAsync(ct);
         var skip = (pageNumber - 1) * pageSize;
 
-        var items = await baseQuery.Skip(skip).Take(pageSize).Select(p => new PatientDto
-        {
-            Id = p.Id,
-            FullName = p.FullName,
-            DateOfBirth = p.DateOfBirth,
-            ContactInfo = p.ContactInfo,
-            Notes = p.Notes
-        }).ToListAsync(ct);
+        var items = await baseQuery.Skip(skip)
+            .Take(pageSize)
+            .Select(p => new PatientDto
+            {
+                Id = p.Id,
+                FullName = p.FullName,
+                DateOfBirth = p.DateOfBirth,
+                ContactInfo = p.ContactInfo,
+                Notes = p.Notes
+            })
+            .ToListAsync(ct);
 
         return new PagedResultDto<PatientDto>
         {
@@ -157,11 +166,13 @@ public class PatientService(LogopedicContext context, ITherapistService therapis
             return new PatientUpdated();
         }
 
-        var rows = await context.Patients.Where(p => p.Id == id && p.TherapistId == therapistId).ExecuteUpdateAsync(
-            setter => setter.SetProperty(p => p.FullName, p => dto.FullName ?? p.FullName)
-                .SetProperty(p => p.DateOfBirth, p => dto.DateOfBirth ?? p.DateOfBirth)
-                .SetProperty(p => p.ContactInfo, p => dto.ContactInfo ?? p.ContactInfo)
-                .SetProperty(p => p.Notes, p => dto.Notes ?? p.Notes), ct);
+        var rows = await context.Patients
+            .Where(p => p.Id == id && p.TherapistId == therapistId)
+            .ExecuteUpdateAsync(
+                setter => setter.SetProperty(p => p.FullName, p => dto.FullName ?? p.FullName)
+                    .SetProperty(p => p.DateOfBirth, p => dto.DateOfBirth ?? p.DateOfBirth)
+                    .SetProperty(p => p.ContactInfo, p => dto.ContactInfo ?? p.ContactInfo)
+                    .SetProperty(p => p.Notes, p => dto.Notes ?? p.Notes), ct);
 
         if (rows == 0)
         {

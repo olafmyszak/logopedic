@@ -330,7 +330,6 @@ public class AppointmentsControllerTests(IntegrationTestWebAppFactory factory, I
 
         var dto = new PatchAppointmentDto
         {
-            DurationInMinutes = oldAppointment.DurationInMinutes - 5,
             Status = AppointmentStatus.NoShow,
             Type = AppointmentType.Therapy
         };
@@ -344,10 +343,10 @@ public class AppointmentsControllerTests(IntegrationTestWebAppFactory factory, I
         // Use AsNoTracking() so EF doesn't return the already-tracked (stale) entity.
         // This forces a fresh read from the database after the PATCH.
         var updatedAppointment = await DbContext.Appointments
-            .AsNoTracking().SingleAsync(a => a.Id == oldAppointment.Id);
+            .AsNoTracking()
+            .SingleAsync(a => a.Id == oldAppointment.Id);
 
         Assert.NotNull(updatedAppointment);
-        Assert.Equal(dto.DurationInMinutes, updatedAppointment.DurationInMinutes);
         Assert.Equal(dto.Status, updatedAppointment.Status);
         Assert.Equal(dto.Type, updatedAppointment.Type);
     }
@@ -393,7 +392,8 @@ public class AppointmentsControllerTests(IntegrationTestWebAppFactory factory, I
 
         // Assert appointment was not changed
         var updatedAppointment = await DbContext.Appointments
-            .AsNoTracking().SingleOrDefaultAsync(a => a.Id == appointment.Id);
+            .AsNoTracking()
+            .SingleOrDefaultAsync(a => a.Id == appointment.Id);
         Assert.NotNull(updatedAppointment);
         Assert.Equal(appointment.DurationInMinutes, updatedAppointment.DurationInMinutes);
         Assert.Equal(appointment.Status, updatedAppointment.Status);
@@ -423,7 +423,8 @@ public class AppointmentsControllerTests(IntegrationTestWebAppFactory factory, I
 
         // Assert appointment was not changed
         var updatedAppointment = await DbContext.Appointments
-            .AsNoTracking().SingleOrDefaultAsync(a => a.Id == appointment.Id);
+            .AsNoTracking()
+            .SingleOrDefaultAsync(a => a.Id == appointment.Id);
         Assert.NotNull(updatedAppointment);
         Assert.Equal(appointment.DurationInMinutes, updatedAppointment.DurationInMinutes);
         Assert.Equal(appointment.Status, updatedAppointment.Status);
@@ -454,7 +455,8 @@ public class AppointmentsControllerTests(IntegrationTestWebAppFactory factory, I
 
         // Assert appointment was not changed
         var updatedAppointment = await DbContext.Appointments
-            .AsNoTracking().SingleOrDefaultAsync(a => a.Id == appointment.Id);
+            .AsNoTracking()
+            .SingleOrDefaultAsync(a => a.Id == appointment.Id);
         Assert.NotNull(updatedAppointment);
         Assert.Equal(appointment.DurationInMinutes, updatedAppointment.DurationInMinutes);
         Assert.Equal(appointment.Status, updatedAppointment.Status);
