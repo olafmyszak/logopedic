@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using LogopedicBackend.Data;
 using LogopedicBackend.Exceptions;
 using LogopedicBackend.Extensions;
+using LogopedicBackend.Filters;
 using LogopedicBackend.Models;
 using LogopedicBackend.Services;
 using Microsoft.AspNetCore.DataProtection;
@@ -59,15 +60,24 @@ if (builder.Environment.IsEnvironment("IntegrationTests"))
 {
     builder.Services
         // Ignore antiforgery for integration tests
-        .AddControllersWithViews(options => { options.Filters.Add(new IgnoreAntiforgeryTokenAttribute()); })
+        .AddControllersWithViews(options =>
+        {
+            options.Filters.Add(new IgnoreAntiforgeryTokenAttribute());
+            options.Filters.Add<TrimModelStringsFilter>();
+        })
         .AddJsonOptions(options => { options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()); });
 }
 else
 {
     builder.Services
-        .AddControllersWithViews(options => { options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute()); })
+        .AddControllersWithViews(options =>
+        {
+            options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute());
+            options.Filters.Add<TrimModelStringsFilter>();
+        })
         .AddJsonOptions(options => { options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()); });
 }
+
 
 builder.Services.AddCors(options =>
 {
