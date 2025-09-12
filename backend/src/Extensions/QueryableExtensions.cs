@@ -12,7 +12,10 @@ public static class QueryableExtensions
         var totalCount = await query.CountAsync(ct);
         var skip = (pageNumber - 1) * pageSize;
 
-        var items = await query.Skip(skip).Take(pageSize).Select(selector).ToListAsync(ct);
+        var items = await query.Skip(skip)
+            .Take(pageSize)
+            .Select(selector)
+            .ToListAsync(ct);
 
         return new PagedResultDto<TDto>
         {

@@ -304,7 +304,8 @@ public class AppointmentService(
 
         if (ordered is null)
         {
-            return baseQuery.OrderBy(a => a.StartTime).ThenBy(a => a.Id);
+            return baseQuery.OrderBy(a => a.StartTime)
+                .ThenBy(a => a.Id);
         }
 
         if (!hasIdSort)

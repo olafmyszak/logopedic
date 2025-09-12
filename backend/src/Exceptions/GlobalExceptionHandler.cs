@@ -25,7 +25,8 @@ internal sealed class GlobalExceptionHandler(
             Exception = exception,
             ProblemDetails = new ProblemDetails
             {
-                Type = exception.GetType().Name,
+                Type = exception.GetType()
+                    .Name,
                 Title = "An error occured",
                 Detail = exception.Message
             }

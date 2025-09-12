@@ -4,9 +4,12 @@ using LogopedicBackend.Data;
 using LogopedicBackend.Enums;
 using LogopedicBackend.Models;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 
 namespace LogopedicBackend.IntegrationTests;
 
+// Run tests sequentially to avoid problems with seeding
+[CollectionDefinition("Database collection", DisableParallelization = true)]
 public class TestDataSeeder(LogopedicContext context, UserManager<User> userManager)
 {
     private const string Locale = "pl";
@@ -112,7 +115,7 @@ public class TestDataSeeder(LogopedicContext context, UserManager<User> userMana
                 patient.Therapist = therapist;
 
                 Patients.Add(patient);
-                therapist.Patients.Add(patient);
+                // therapist.Patients.Add(patient);
             }
         }
 
@@ -122,28 +125,66 @@ public class TestDataSeeder(LogopedicContext context, UserManager<User> userMana
 
     private async Task SeedAppointments(int appointmentsPerPatient)
     {
-        var appointmentFaker = new Faker<Appointment>(Locale)
-            .RuleFor(a => a.StartTime,
-                f => DateTimeOffset.UtcNow.AddDays(f.Random.Int(-30, 60)).AddHours(f.Random.Int(8, 17)))
-            .RuleFor(a => a.DurationInMinutes, f => f.Random.ListItem([15, 30, 45, 60, 90]))
-            .RuleFor(a => a.Type, f => f.PickRandom<AppointmentType>())
-            .RuleFor(a => a.Status, f => f.PickRandom<AppointmentStatus>());
+        var faker = new Faker(Locale);
+
+        const int maxAttemptsPerAppointment = 200;
+
+        var durations = new[] { 15, 30, 45, 60, 90 };
 
         foreach (var patient in Patients)
         {
             for (var i = 0; i < appointmentsPerPatient; ++i)
             {
-                var appointment = appointmentFaker.Generate();
-                appointment.Patient = patient;
-                appointment.Therapist = patient.Therapist;
-                Appointments.Add(appointment);
+                var placed = false;
+                for (var attempt = 0; attempt < maxAttemptsPerAppointment && !placed; ++attempt)
+                {
+                    // generate candidate start within -30…+60 days and between 8:00 and 17:00,
+                    // with minutes snapped to 0,15,30,45
+                    var dayOffset = faker.Random.Int(-30, 60);
+                    var hour = faker.Random.Int(8, 17);
+                    var minute = faker.Random.ListItem([0, 15, 30, 45]);
 
-                patient.Appointments.Add(appointment);
-                patient.Therapist.Appointments.Add(appointment);
+                    var candidateStart = DateTimeOffset.UtcNow
+                        .AddDays(dayOffset)
+                        .AddHours(hour)
+                        .AddMinutes(minute);
+
+                    var duration = faker.Random.ListItem(durations);
+                    var candidateEnd = candidateStart.AddMinutes(duration);
+
+                    var conflict = await context.Appointments.AnyAsync(a =>
+                        a.TherapistId == patient.Therapist.Id && a.StartTime < candidateEnd &&
+                        a.StartTime.AddMinutes(a.DurationInMinutes) > candidateStart);
+
+                    if (conflict)
+                    {
+                        continue;
+                    }
+
+                    // create and attach the appointment
+                    var appointment = new Appointment
+                    {
+                        StartTime = candidateStart,
+                        DurationInMinutes = duration,
+                        Type = faker.PickRandom<AppointmentType>(),
+                        Status = faker.PickRandom<AppointmentStatus>(),
+                        TherapistId = patient.TherapistId,
+                        Therapist = patient.Therapist,
+                        PatientId = patient.Id,
+                        Patient = patient
+                    };
+
+                    // context.Appointments.Add(appointment);
+                    // await context.SaveChangesAsync();
+                    Appointments.Add(appointment);
+
+                    placed = true;
+                }
             }
         }
 
-        await context.Appointments.AddRangeAsync(Appointments);
+        context.AddRange(Appointments);
         await context.SaveChangesAsync();
+        Appointments.AddRange(context.Appointments);
     }
 }

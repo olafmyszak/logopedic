@@ -9,6 +9,7 @@ using Xunit.Abstractions;
 
 namespace LogopedicBackend.IntegrationTests;
 
+[Collection("Database collection")]
 public class AppointmentsControllerTests(IntegrationTestWebAppFactory factory, ITestOutputHelper testOutputHelper)
     : BaseIntegrationTest(factory, testOutputHelper)
 {
@@ -24,8 +25,12 @@ public class AppointmentsControllerTests(IntegrationTestWebAppFactory factory, I
     public async Task GetById_Returns200AndAppointmentDto_WhenAppointmentExists()
     {
         // Arrange
-        var therapist = DataSeeder.Therapists.Single(t => t.UserId == DataSeeder.TestUser.Id);
-        var validAppointmentId = therapist.Appointments.Select(a => a.Id).First();
+        var therapist = await DbContext.Therapists
+            .Include(therapist => therapist.Appointments)
+            .SingleAsync(t => t.UserId == DataSeeder.TestUser.Id);
+        var validAppointmentId = therapist.Appointments
+            .Select(a => a.Id)
+            .First();
 
         // Act
         var response = await Client.GetAsync($"{AppointmentsPath}/{validAppointmentId}");
@@ -42,7 +47,7 @@ public class AppointmentsControllerTests(IntegrationTestWebAppFactory factory, I
     public async Task GetById_Returns404_WhenAppointmentDoesNotExist()
     {
         // Arrange
-        var nonExistingAppointmentId = DataSeeder.Appointments.Max(a => a.Id) + 1;
+        const int nonExistingAppointmentId = -1;
 
         // Act
         var response = await Client.GetAsync($"{AppointmentsPath}/{nonExistingAppointmentId}");
@@ -55,8 +60,11 @@ public class AppointmentsControllerTests(IntegrationTestWebAppFactory factory, I
     public async Task GetById_Returns404_WhenAppointmentDoesNotBelongToCurrentTherapist()
     {
         // Arrange
-        var therapist = DataSeeder.Therapists.Single(t => t.UserId == DataSeeder.TestUser.Id);
-        var appointmentId = DbContext.Appointments.Where(a => a.TherapistId != therapist.Id).Select(a => a.Id).First();
+        var therapist = await DbContext.Therapists.SingleAsync(t => t.UserId == DataSeeder.TestUser.Id);
+        var appointmentId = await DbContext.Appointments
+            .Where(a => a.TherapistId != therapist.Id)
+            .Select(a => a.Id)
+            .FirstAsync();
 
         // Act
         var response = await Client.GetAsync($"{AppointmentsPath}/{appointmentId}");
@@ -83,7 +91,9 @@ public class AppointmentsControllerTests(IntegrationTestWebAppFactory factory, I
     {
         // Arrange
         var cts = new CancellationTokenSource();
-        var id = DataSeeder.Appointments[0].Id;
+        var id = await DbContext.Appointments
+            .Select(a => a.Id)
+            .FirstAsync(cts.Token);
 
         // Act
         await cts.CancelAsync();
@@ -119,9 +129,14 @@ public class AppointmentsControllerTests(IntegrationTestWebAppFactory factory, I
 
         if (paged.Items.Count >= 2)
         {
-            var ordered = paged.Items.Select(i => i.StartTime).OrderBy(d => d).ToList();
+            var ordered = paged.Items
+                .Select(i => i.StartTime)
+                .OrderBy(d => d)
+                .ToList();
 
-            var actual = paged.Items.Select(i => i.StartTime).ToList();
+            var actual = paged.Items
+                .Select(i => i.StartTime)
+                .ToList();
 
             Assert.Equal(ordered, actual);
         }
@@ -152,7 +167,8 @@ public class AppointmentsControllerTests(IntegrationTestWebAppFactory factory, I
 
         var expectedFrom = from.ToString("u");
         var expectedTo = to.ToString("u");
-        var message = details.Errors["dateRange"].FirstOrDefault();
+        var message = details.Errors["dateRange"]
+            .FirstOrDefault();
         Assert.NotNull(message);
         Assert.Contains(expectedFrom, message);
         Assert.Contains(expectedTo, message);
@@ -179,7 +195,8 @@ public class AppointmentsControllerTests(IntegrationTestWebAppFactory factory, I
         Assert.Equal(400, details.Status);
         Assert.Contains("pageSize", details.Errors.Keys);
 
-        var message = details.Errors["pageSize"].FirstOrDefault();
+        var message = details.Errors["pageSize"]
+            .FirstOrDefault();
         Assert.NotNull(message);
         Assert.Contains(invalidPageSize.ToString(), message);
         Assert.Contains(AppointmentQueryParameters.MinPageSize.ToString(), message);
@@ -190,9 +207,14 @@ public class AppointmentsControllerTests(IntegrationTestWebAppFactory factory, I
     public async Task Create_Returns201AndCreatesAppointment_WhenDtoIsValid()
     {
         // Arrange
-        var therapist = DataSeeder.Therapists.Single(t => t.UserId == DataSeeder.TestUser.Id);
+        var therapist = await DbContext.Therapists
+            .Include(therapist => therapist.Patients)
+            .Include(therapist => therapist.Appointments)
+            .SingleAsync(t => t.UserId == DataSeeder.TestUser.Id);
 
-        var patientId = therapist.Patients.Select(p => p.Id).First();
+        var patientId = therapist.Patients
+            .Select(p => p.Id)
+            .First();
         var maxDate = therapist.Appointments.Max(a => a.StartTime);
 
         var createDto = new CreateAppointmentDto
@@ -221,7 +243,9 @@ public class AppointmentsControllerTests(IntegrationTestWebAppFactory factory, I
     public async Task Create_Returns404AndProblemDetails_WhenDtoIsValidAndPatientIdIsInvalid()
     {
         // Arrange
-        var therapist = DataSeeder.Therapists.Single(t => t.UserId == DataSeeder.TestUser.Id);
+        var therapist = await DbContext.Therapists
+            .Include(therapist => therapist.Appointments)
+            .SingleAsync(t => t.UserId == DataSeeder.TestUser.Id);
         const int invalidPatientId = -1;
         var maxDate = therapist.Appointments.Max(a => a.StartTime);
 
@@ -247,8 +271,13 @@ public class AppointmentsControllerTests(IntegrationTestWebAppFactory factory, I
     public async Task Create_Returns404AndProblemDetails_WhenDtoIsValidAndPatientIdBelongsToAnotherTherapist()
     {
         // Arrange
-        var notCurrentTherapist = DataSeeder.Therapists.Single(t => t.UserId != DataSeeder.TestUser.Id);
-        var invalidPatientId = notCurrentTherapist.Patients.Select(p => p.Id).First();
+        var notCurrentTherapist = await DbContext.Therapists
+            .Include(therapist => therapist.Patients)
+            .Include(therapist => therapist.Appointments)
+            .SingleAsync(t => t.UserId != DataSeeder.TestUser.Id);
+        var invalidPatientId = notCurrentTherapist.Patients
+            .Select(p => p.Id)
+            .First();
         var maxDate = notCurrentTherapist.Appointments.Max(a => a.StartTime);
 
         var createDto = new CreateAppointmentDto
@@ -273,8 +302,13 @@ public class AppointmentsControllerTests(IntegrationTestWebAppFactory factory, I
     public async Task Create_Returns409AndProblemDetails_WhenAppointmentTimeCollidesAndPatientIdIsValid()
     {
         // Arrange
-        var therapist = DataSeeder.Therapists.Single(t => t.UserId == DataSeeder.TestUser.Id);
-        var patientId = therapist.Patients.Select(p => p.Id).First();
+        var therapist = await DbContext.Therapists
+            .Include(therapist => therapist.Patients)
+            .Include(therapist => therapist.Appointments)
+            .SingleAsync(t => t.UserId == DataSeeder.TestUser.Id);
+        var patientId = therapist.Patients
+            .Select(p => p.Id)
+            .First();
         var minDate = therapist.Appointments.Min(a => a.StartTime);
 
         var createDto = new CreateAppointmentDto
@@ -299,8 +333,13 @@ public class AppointmentsControllerTests(IntegrationTestWebAppFactory factory, I
     public async Task Create_Returns400AndValidationProblemDetails_WhenAppointmentDtoIsInvalidAndPatientIdIsValid()
     {
         // Arrange
-        var therapist = DataSeeder.Therapists.Single(t => t.UserId == DataSeeder.TestUser.Id);
-        var patientId = therapist.Patients.Select(p => p.Id).First();
+        var therapist = await DbContext.Therapists
+            .Include(therapist => therapist.Patients)
+            .Include(therapist => therapist.Appointments)
+            .SingleAsync(t => t.UserId == DataSeeder.TestUser.Id);
+        var patientId = therapist.Patients
+            .Select(p => p.Id)
+            .First();
         var maxDate = therapist.Appointments.Max(a => a.StartTime);
 
         var createDto = new CreateAppointmentDto
@@ -325,7 +364,9 @@ public class AppointmentsControllerTests(IntegrationTestWebAppFactory factory, I
     public async Task Patch_Returns204AndUpdatesAppointment_WhenIdAndDtoValid()
     {
         // Arrange
-        var therapist = DataSeeder.Therapists.Single(t => t.UserId == DataSeeder.TestUser.Id);
+        var therapist = await DbContext.Therapists
+            .Include(therapist => therapist.Appointments)
+            .SingleAsync(t => t.UserId == DataSeeder.TestUser.Id);
         var oldAppointment = therapist.Appointments.First();
 
         var dto = new PatchAppointmentDto
@@ -373,7 +414,9 @@ public class AppointmentsControllerTests(IntegrationTestWebAppFactory factory, I
     public async Task Patch_Returns404AndProblemDetails_WhenIdValidAndPatientIdInvalid()
     {
         // Arrange
-        var therapist = DataSeeder.Therapists.Single(t => t.UserId == DataSeeder.TestUser.Id);
+        var therapist = await DbContext.Therapists
+            .Include(therapist => therapist.Appointments)
+            .SingleAsync(t => t.UserId == DataSeeder.TestUser.Id);
         var appointment = therapist.Appointments.First();
 
         var dto = new PatchAppointmentDto
@@ -404,7 +447,9 @@ public class AppointmentsControllerTests(IntegrationTestWebAppFactory factory, I
     public async Task Patch_Returns400AndValidationProblemDetails_WhenIdValidAndDtoInvalid()
     {
         // Arrange
-        var therapist = DataSeeder.Therapists.Single(t => t.UserId == DataSeeder.TestUser.Id);
+        var therapist = await DbContext.Therapists
+            .Include(therapist => therapist.Appointments)
+            .SingleAsync(t => t.UserId == DataSeeder.TestUser.Id);
         var appointment = therapist.Appointments.First();
 
         var dto = new PatchAppointmentDto
@@ -434,7 +479,9 @@ public class AppointmentsControllerTests(IntegrationTestWebAppFactory factory, I
     public async Task Patch_Returns409AndProblemDetails_WhenStartTimeConflicting()
     {
         // Arrange
-        var therapist = DataSeeder.Therapists.Single(t => t.UserId == DataSeeder.TestUser.Id);
+        var therapist = await DbContext.Therapists
+            .Include(therapist => therapist.Appointments)
+            .SingleAsync(t => t.UserId == DataSeeder.TestUser.Id);
         var appointment = therapist.Appointments.First();
         var minDate = therapist.Appointments.Min(a => a.StartTime);
 
@@ -466,8 +513,12 @@ public class AppointmentsControllerTests(IntegrationTestWebAppFactory factory, I
     public async Task Delete_Returns204AndDeletesAppointment_WhenIdIsValid()
     {
         // Arrange
-        var therapist = DataSeeder.Therapists.Single(t => t.UserId == DataSeeder.TestUser.Id);
-        var appointmentId = therapist.Appointments.Select(a => a.Id).First();
+        var therapist = await DbContext.Therapists
+            .Include(therapist => therapist.Appointments)
+            .SingleAsync(t => t.UserId == DataSeeder.TestUser.Id);
+        var appointmentId = therapist.Appointments
+            .Select(a => a.Id)
+            .First();
 
         // Act
         var response = await Client.DeleteAsync($"{AppointmentsPath}/{appointmentId}");
@@ -475,7 +526,9 @@ public class AppointmentsControllerTests(IntegrationTestWebAppFactory factory, I
         // Assert
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
 
-        var appointmentExists = await DbContext.Appointments.AsNoTracking().AnyAsync(a => a.Id == appointmentId);
+        var appointmentExists = await DbContext.Appointments
+            .AsNoTracking()
+            .AnyAsync(a => a.Id == appointmentId);
         Assert.False(appointmentExists);
     }
 
@@ -499,8 +552,11 @@ public class AppointmentsControllerTests(IntegrationTestWebAppFactory factory, I
     public async Task Delete_Returns404_WhenIdDoesNotBelongToTherapist()
     {
         // Arrange
-        var therapist = DataSeeder.Therapists.Single(t => t.UserId == DataSeeder.TestUser.Id);
-        var appointmentId = DbContext.Appointments.Where(a => a.TherapistId != therapist.Id).Select(a => a.Id).First();
+        var therapist = await DbContext.Therapists.SingleAsync(t => t.UserId == DataSeeder.TestUser.Id);
+        var appointmentId = await DbContext.Appointments
+            .Where(a => a.TherapistId != therapist.Id)
+            .Select(a => a.Id)
+            .FirstAsync();
 
         // Act
         var response = await Client.DeleteAsync($"{AppointmentsPath}/{appointmentId}");

@@ -15,8 +15,8 @@ public class TestDataBuilder
 
     public TestDataBuilder()
     {
-        _options = new DbContextOptionsBuilder<LogopedicContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString()) // unique DB per test
+        _options = new DbContextOptionsBuilder<LogopedicContext>().UseInMemoryDatabase(Guid.NewGuid()
+                .ToString()) // unique DB per test
             .Options;
     }
 
@@ -24,7 +24,8 @@ public class TestDataBuilder
     {
         _user = user ?? new User
         {
-            Id = Guid.NewGuid().ToString()
+            Id = Guid.NewGuid()
+                .ToString()
         };
 
         return this;

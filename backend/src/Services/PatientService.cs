@@ -90,7 +90,9 @@ public class PatientService(LogopedicContext context, ITherapistService therapis
 
         var therapistId = await therapistService.GetCurrentTherapistIdOrThrowAsync(ct);
 
-        var baseQuery = context.Patients.AsNoTracking().Where(p => p.TherapistId == therapistId);
+        var baseQuery = context.Patients
+            .AsNoTracking()
+            .Where(p => p.TherapistId == therapistId);
 
         if (!string.IsNullOrWhiteSpace(query.Search))
         {
@@ -168,11 +170,10 @@ public class PatientService(LogopedicContext context, ITherapistService therapis
 
         var rows = await context.Patients
             .Where(p => p.Id == id && p.TherapistId == therapistId)
-            .ExecuteUpdateAsync(
-                setter => setter.SetProperty(p => p.FullName, p => dto.FullName ?? p.FullName)
-                    .SetProperty(p => p.DateOfBirth, p => dto.DateOfBirth ?? p.DateOfBirth)
-                    .SetProperty(p => p.ContactInfo, p => dto.ContactInfo ?? p.ContactInfo)
-                    .SetProperty(p => p.Notes, p => dto.Notes ?? p.Notes), ct);
+            .ExecuteUpdateAsync(setter => setter.SetProperty(p => p.FullName, p => dto.FullName ?? p.FullName)
+                .SetProperty(p => p.DateOfBirth, p => dto.DateOfBirth ?? p.DateOfBirth)
+                .SetProperty(p => p.ContactInfo, p => dto.ContactInfo ?? p.ContactInfo)
+                .SetProperty(p => p.Notes, p => dto.Notes ?? p.Notes), ct);
 
         if (rows == 0)
         {
@@ -186,7 +187,9 @@ public class PatientService(LogopedicContext context, ITherapistService therapis
     {
         var therapistId = await therapistService.GetCurrentTherapistIdOrThrowAsync(ct);
 
-        var rows = await context.Patients.Where(a => a.Id == id && a.TherapistId == therapistId).ExecuteDeleteAsync(ct);
+        var rows = await context.Patients
+            .Where(a => a.Id == id && a.TherapistId == therapistId)
+            .ExecuteDeleteAsync(ct);
 
         return rows > 0;
     }
@@ -228,6 +231,7 @@ public class PatientService(LogopedicContext context, ITherapistService therapis
             }
         }
 
-        return ordered ?? baseQuery.OrderBy(p => p.FullName).ThenBy(p => p.Id);
+        return ordered ?? baseQuery.OrderBy(p => p.FullName)
+            .ThenBy(p => p.Id);
     }
 }

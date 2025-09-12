@@ -71,11 +71,13 @@ else
 
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("LocalDev",
-        policy =>
-        {
-            policy.WithOrigins("http://localhost:4200").AllowAnyHeader().AllowAnyMethod().AllowCredentials();
-        });
+    options.AddPolicy("LocalDev", policy =>
+    {
+        policy.WithOrigins("http://localhost:4200")
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
+    });
 });
 
 builder.Services.AddScoped<AdminService>();
@@ -87,7 +89,10 @@ builder.Services.AddScoped<IAppointmentService, AppointmentService>();
 builder.Services.AddScoped<IPatientService, PatientService>();
 
 var keysFolder = new DirectoryInfo("/keys");
-builder.Services.AddDataProtection().PersistKeysToFileSystem(keysFolder).SetApplicationName("Logopedic");
+builder.Services
+    .AddDataProtection()
+    .PersistKeysToFileSystem(keysFolder)
+    .SetApplicationName("Logopedic");
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>

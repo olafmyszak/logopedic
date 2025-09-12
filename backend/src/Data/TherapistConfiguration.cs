@@ -31,6 +31,7 @@ public class TherapistConfiguration : IEntityTypeConfiguration<Therapist>
             .HasForeignKey(a => a.TherapistId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.HasIndex(t => t.UserId).IsUnique();
+        builder.HasIndex(t => t.UserId)
+            .IsUnique();
     }
 }

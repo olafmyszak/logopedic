@@ -894,7 +894,7 @@ public class AppointmentServiceTests
         var dto = new PatchAppointmentDto
         {
             Type = AppointmentType.Diagnosis,
-            Status = AppointmentStatus.Cancelled,
+            Status = AppointmentStatus.Cancelled
         };
 
         // Act
@@ -936,7 +936,7 @@ public class AppointmentServiceTests
         var dto = new PatchAppointmentDto
         {
             Type = AppointmentType.Diagnosis,
-            Status = AppointmentStatus.Cancelled,
+            Status = AppointmentStatus.Cancelled
         };
 
         const int invalidId = -1;
@@ -981,7 +981,7 @@ public class AppointmentServiceTests
         var dto = new PatchAppointmentDto
         {
             Type = AppointmentType.Diagnosis,
-            Status = AppointmentStatus.Cancelled,
+            Status = AppointmentStatus.Cancelled
         };
 
         // Act
@@ -1025,7 +1025,7 @@ public class AppointmentServiceTests
         {
             DurationInMinutes = -5,
             Type = AppointmentType.Diagnosis,
-            Status = AppointmentStatus.Cancelled,
+            Status = AppointmentStatus.Cancelled
         };
 
         // Act
@@ -1088,7 +1088,7 @@ public class AppointmentServiceTests
             StartTime = conflictingAppointment.StartTime.AddMinutes(-5),
             DurationInMinutes = 60,
             Type = AppointmentType.Diagnosis,
-            Status = AppointmentStatus.Cancelled,
+            Status = AppointmentStatus.Cancelled
         };
 
         // Act
@@ -1123,22 +1123,22 @@ public class AppointmentServiceTests
             .Returns(Task.FromResult(appointment.TherapistId));
 
         var patientService = Substitute.For<IPatientService>();
-        
+
         var appointmentService = new AppointmentService(context, therapistService, patientService);
-        
+
         // Act
         var result = await appointmentService.DeleteAsync(appointment.Id);
-        
+
         // Assert
         Assert.True(result);
 
         var exists = await context.Appointments
             .AsNoTracking()
             .AnyAsync(a => a.Id == appointment.Id);
-        
+
         Assert.False(exists);
     }
-    
+
     [Fact]
     public async Task DeleteAsync_ReturnsFalse_WhenIdInvalid()
     {
@@ -1162,14 +1162,14 @@ public class AppointmentServiceTests
         const int invalidId = -1;
         // Act
         var result = await appointmentService.DeleteAsync(invalidId);
-        
+
         // Assert
         Assert.False(result);
 
         var exists = await context.Appointments
             .AsNoTracking()
             .AnyAsync(a => a.Id == appointment.Id);
-        
+
         Assert.True(exists);
     }
 }
