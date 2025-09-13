@@ -9,8 +9,8 @@ public class BaseIntegrationTest : IClassFixture<IntegrationTestWebAppFactory>, 
 {
     protected BaseIntegrationTest(IntegrationTestWebAppFactory factory, ITestOutputHelper testOutputHelper)
     {
-        var scope = factory.Services.CreateScope();
-        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
+        IServiceScope scope = factory.Services.CreateScope();
+        UserManager<User> userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
 
         DbContext = scope.ServiceProvider.GetRequiredService<LogopedicContext>();
         DataSeeder = new TestDataSeeder(DbContext, userManager);
@@ -23,13 +23,7 @@ public class BaseIntegrationTest : IClassFixture<IntegrationTestWebAppFactory>, 
     protected LogopedicContext DbContext { get; }
     protected ITestOutputHelper TestOutputHelper { get; }
 
-    public Task InitializeAsync()
-    {
-        return DataSeeder.SeedAsync();
-    }
+    public Task InitializeAsync() => DataSeeder.SeedAsync();
 
-    public Task DisposeAsync()
-    {
-        return Task.CompletedTask;
-    }
+    public Task DisposeAsync() => Task.CompletedTask;
 }

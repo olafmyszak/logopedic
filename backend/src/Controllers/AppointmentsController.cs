@@ -1,8 +1,12 @@
 ﻿using LogopedicBackend.Constants;
 using LogopedicBackend.Dtos;
 using LogopedicBackend.Services;
+using LogopedicBackend.Services.Results.Appointments;
+using LogopedicBackend.Services.Results.Common.NotFound;
+using LogopedicBackend.Services.Results.Common.Paging;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using OneOf;
 
 namespace LogopedicBackend.Controllers;
 
@@ -19,7 +23,8 @@ public class AppointmentsController(IAppointmentService appointmentService) : Co
     public async Task<ActionResult<PagedResultDto<AppointmentDto>>> Query([FromQuery] AppointmentQueryParameters query,
         CancellationToken ct)
     {
-        var result = await appointmentService.QueryAsync(query, ct);
+        OneOf<PagedResultDto<AppointmentDto>, InvalidDateRangeError, InvalidPageSizeError> result =
+            await appointmentService.QueryAsync(query, ct);
 
         return result.Match<ActionResult<PagedResultDto<AppointmentDto>>>(pagedResult => Ok(pagedResult),
             invalidDateRangeError => ValidationProblem(new ValidationProblemDetails(new Dictionary<string, string[]>
@@ -33,7 +38,8 @@ public class AppointmentsController(IAppointmentService appointmentService) : Co
                 Title = "Invalid date range",
                 Status = StatusCodes.Status400BadRequest,
                 Instance = HttpContext.Request.Path
-            }), pageSizeError => ValidationProblem(new ValidationProblemDetails(new Dictionary<string, string[]>
+            }),
+            pageSizeError => ValidationProblem(new ValidationProblemDetails(new Dictionary<string, string[]>
             {
                 ["pageSize"] =
                 [
@@ -52,12 +58,14 @@ public class AppointmentsController(IAppointmentService appointmentService) : Co
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<AppointmentDto>> GetById(int id, CancellationToken ct)
     {
-        var appointment = await appointmentService.GetByIdAsync(id, ct);
+        AppointmentDto? appointment = await appointmentService.GetByIdAsync(id, ct);
 
         if (appointment is null)
         {
             return Problem($"Appointment with id {id} does not exist or does not belong to the current user",
-                HttpContext.Request.Path, StatusCodes.Status404NotFound, "Appointment not found");
+                HttpContext.Request.Path,
+                StatusCodes.Status404NotFound,
+                "Appointment not found");
         }
 
         return Ok(appointment);
@@ -69,28 +77,30 @@ public class AppointmentsController(IAppointmentService appointmentService) : Co
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<AppointmentDto>> Create(CreateAppointmentDto dto, CancellationToken ct)
     {
-        var result = await appointmentService.CreateAsync(dto, ct);
+        OneOf<AppointmentCreated, PatientNotFound, TimeConflict, DurationZeroOrLess> result =
+            await appointmentService.CreateAsync(dto, ct);
 
         return result.Match<ActionResult<AppointmentDto>>(
             created => CreatedAtAction(nameof(GetById), new { id = created.AppointmentDto.Id }, created.AppointmentDto),
             patientNotFound => Problem(
                 $"Patient with id {patientNotFound.PatientId} does not exist or does not belong to the current user",
-                HttpContext.Request.Path, StatusCodes.Status404NotFound, "Patient not found"), timeConflict =>
+                HttpContext.Request.Path,
+                StatusCodes.Status404NotFound,
+                "Patient not found"),
+            timeConflict =>
                 Problem(
                     $"The requested time {timeConflict.RequestedStart:t}–{timeConflict.RequestedEnd:t} conflicts with {timeConflict.Conflicts.Count} existing appointment(s).",
-                    HttpContext.Request.Path, StatusCodes.Status409Conflict,
+                    HttpContext.Request.Path,
+                    StatusCodes.Status409Conflict,
                     "Requested time slot conflicts with existing appointments",
-                    extensions: new Dictionary<string, object?>
-                    {
-                        ["conflicts"] = timeConflict.Conflicts
-                    }), durationLessThanZero => ValidationProblem(new ValidationProblemDetails(
-                new Dictionary<string, string[]>
-                {
-                    ["duration"] =
-                    [
-                        $"The 'durationInMinutes' value ({durationLessThanZero.Duration}) must be bigger than zero."
-                    ]
-                })
+                    extensions: new Dictionary<string, object?> { ["conflicts"] = timeConflict.Conflicts }),
+            durationLessThanZero => ValidationProblem(new ValidationProblemDetails(new Dictionary<string, string[]>
+            {
+                ["duration"] =
+                [
+                    $"The 'durationInMinutes' value ({durationLessThanZero.Duration}) must be bigger than zero."
+                ]
+            })
             {
                 Title = "Duration is zero or less",
                 Status = StatusCodes.Status400BadRequest,
@@ -104,33 +114,39 @@ public class AppointmentsController(IAppointmentService appointmentService) : Co
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Patch(int id, [FromBody] PatchAppointmentDto dto, CancellationToken ct)
     {
-        var result = await appointmentService.PatchAsync(id, dto, ct);
+        OneOf<AppointmentUpdated, AppointmentNotFound, PatientNotFound, DurationZeroOrLess, TimeConflict> result =
+            await appointmentService.PatchAsync(id, dto, ct);
 
         return result.Match<IActionResult>(_ => NoContent(),
             appointmentNotFound => Problem(
                 $"Appointment with id {appointmentNotFound.AppointmentId} does not exist or does not belong to the current user",
-                HttpContext.Request.Path, StatusCodes.Status404NotFound, "Appointment not found"),
+                HttpContext.Request.Path,
+                StatusCodes.Status404NotFound,
+                "Appointment not found"),
             patientNotFound => Problem(
                 $"Patient with id {patientNotFound.PatientId} does not exist or does not belong to the current user",
-                HttpContext.Request.Path, StatusCodes.Status404NotFound, "Patient not found"), durationLessThanZero =>
-                ValidationProblem(new ValidationProblemDetails(new Dictionary<string, string[]>
-                {
-                    ["duration"] =
-                    [
-                        $"The 'durationInMinutes' value ({durationLessThanZero.Duration}) must be bigger than zero."
-                    ]
-                })
-                {
-                    Title = "Duration is zero or less",
-                    Status = StatusCodes.Status400BadRequest,
-                    Instance = HttpContext.Request.Path
-                }), timeConflict => Problem(
-                $"The requested time {timeConflict.RequestedStart:t}–{timeConflict.RequestedEnd:t} conflicts with {timeConflict.Conflicts.Count} existing appointment(s).",
-                HttpContext.Request.Path, StatusCodes.Status409Conflict,
-                "Requested time slot conflicts with existing appointments", extensions: new Dictionary<string, object?>
-                {
-                    ["conflicts"] = timeConflict.Conflicts
-                }));
+                HttpContext.Request.Path,
+                StatusCodes.Status404NotFound,
+                "Patient not found"),
+            durationLessThanZero => ValidationProblem(new ValidationProblemDetails(new Dictionary<string, string[]>
+            {
+                ["duration"] =
+                [
+                    $"The 'durationInMinutes' value ({durationLessThanZero.Duration}) must be bigger than zero."
+                ]
+            })
+            {
+                Title = "Duration is zero or less",
+                Status = StatusCodes.Status400BadRequest,
+                Instance = HttpContext.Request.Path
+            }),
+            timeConflict =>
+                Problem(
+                    $"The requested time {timeConflict.RequestedStart:t}–{timeConflict.RequestedEnd:t} conflicts with {timeConflict.Conflicts.Count} existing appointment(s).",
+                    HttpContext.Request.Path,
+                    StatusCodes.Status409Conflict,
+                    "Requested time slot conflicts with existing appointments",
+                    extensions: new Dictionary<string, object?> { ["conflicts"] = timeConflict.Conflicts }));
     }
 
     [HttpDelete("{id:int}")]
@@ -138,12 +154,14 @@ public class AppointmentsController(IAppointmentService appointmentService) : Co
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(int id, CancellationToken ct)
     {
-        var deleted = await appointmentService.DeleteAsync(id, ct);
+        bool deleted = await appointmentService.DeleteAsync(id, ct);
 
         if (!deleted)
         {
             return Problem($"Appointment with id {id} does not exist or does not belong to the current user",
-                HttpContext.Request.Path, StatusCodes.Status404NotFound, "Appointment not found");
+                HttpContext.Request.Path,
+                StatusCodes.Status404NotFound,
+                "Appointment not found");
         }
 
         return NoContent();

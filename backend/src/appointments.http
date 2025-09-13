@@ -10,12 +10,12 @@ Content-Type: application/json
 Accept: application/json
 
 {
-  "startTime": "2025-08-20T10:30:00Z",
-  "durationInMinutes": 60,
-  "type": "Diagnosis",
-  "status": "Scheduled",
-  "therapistId": 1,
-  "patientId": -1
+    "startTime": "2025-08-20T10:30:00Z",
+    "durationInMinutes": 60,
+    "type": "Diagnosis",
+    "status": "Scheduled",
+    "therapistId": 1,
+    "patientId": -1
 }
 
 ### Update an appointment
@@ -24,11 +24,11 @@ Content-Type: application/json
 Accept: application/json
 
 {
-  "startTime": "2025-08-18T18:19:20.854Z",
-  "durationInMinutes": 10,
-  "type": "Diagnosis",
-  "status": "NoShow",
-  "patientId": 1
+    "startTime": "2025-08-18T18:19:20.854Z",
+    "durationInMinutes": 10,
+    "type": "Diagnosis",
+    "status": "NoShow",
+    "patientId": 1
 }
 
 ### Delete an appointment

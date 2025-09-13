@@ -2,6 +2,7 @@
 using LogopedicBackend.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace LogopedicBackend.Services;
 
@@ -9,18 +10,18 @@ public class AdminService(LogopedicContext context, UserManager<User> userManage
 {
     public async Task<bool> DeleteUserAndDomainDataAsync(string email)
     {
-        var user = await userManager.FindByEmailAsync(email);
+        User? user = await userManager.FindByEmailAsync(email);
 
         if (user is null)
         {
             return false;
         }
 
-        await using var transaction = await context.Database.BeginTransactionAsync();
+        await using IDbContextTransaction transaction = await context.Database.BeginTransactionAsync();
 
         try
         {
-            var therapist = await context.Therapists.FirstOrDefaultAsync(t => t.UserId == user.Id);
+            Therapist? therapist = await context.Therapists.FirstOrDefaultAsync(t => t.UserId == user.Id);
 
             if (therapist is not null)
             {
@@ -29,7 +30,7 @@ public class AdminService(LogopedicContext context, UserManager<User> userManage
 
             await context.SaveChangesAsync();
 
-            var result = await userManager.DeleteAsync(user);
+            IdentityResult result = await userManager.DeleteAsync(user);
             if (!result.Succeeded)
             {
                 await transaction.RollbackAsync();

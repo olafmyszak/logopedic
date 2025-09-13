@@ -8,13 +8,13 @@ public static class SeedAdminExtension
 {
     public static async Task SeedAdminAsync(this IApplicationBuilder app)
     {
-        using var scope = app.ApplicationServices.CreateScope();
+        using IServiceScope scope = app.ApplicationServices.CreateScope();
 
-        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
-        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        UserManager<User> userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
+        ILogger<Program> logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
 
         const string adminEmail = "admin@logopedic.com";
-        var adminUser = await userManager.FindByEmailAsync(adminEmail);
+        User? adminUser = await userManager.FindByEmailAsync(adminEmail);
 
         if (adminUser is null)
         {

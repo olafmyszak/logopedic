@@ -14,28 +14,28 @@ public class TestCookieAuthHandler(
 {
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-        var userManager = Context.RequestServices.GetRequiredService<UserManager<User>>();
+        UserManager<User> userManager = Context.RequestServices.GetRequiredService<UserManager<User>>();
         // Has to match one of the users created in TestDataSeeder
-        var user = await userManager.FindByNameAsync(TestDataSeeder.TestUsername);
+        User? user = await userManager.FindByNameAsync(TestDataSeeder.TestUsername);
 
         if (user == null)
         {
             return AuthenticateResult.Fail("Test user not found");
         }
 
-        var claims = new List<Claim>
+        List<Claim> claims = new()
         {
-            new(ClaimTypes.NameIdentifier, user.Id),
-            new(ClaimTypes.Name, user.UserName!),
-            new(ClaimTypes.Email, user.Email!)
+            new Claim(ClaimTypes.NameIdentifier, user.Id),
+            new Claim(ClaimTypes.Name, user.UserName!),
+            new Claim(ClaimTypes.Email, user.Email!)
         };
 
-        var roles = await userManager.GetRolesAsync(user);
+        IList<string> roles = await userManager.GetRolesAsync(user);
         claims.AddRange(roles.Select(r => new Claim(ClaimTypes.Role, r)));
 
-        var identity = new ClaimsIdentity(claims, Scheme.Name);
-        var principal = new ClaimsPrincipal(identity);
-        var ticket = new AuthenticationTicket(principal, Scheme.Name);
+        ClaimsIdentity identity = new(claims, Scheme.Name);
+        ClaimsPrincipal principal = new(identity);
+        AuthenticationTicket ticket = new(principal, Scheme.Name);
 
         return AuthenticateResult.Success(ticket);
     }

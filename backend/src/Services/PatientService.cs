@@ -15,14 +15,12 @@ public class PatientService(LogopedicContext context, ITherapistService therapis
     private static readonly Dictionary<string, Expression<Func<Patient, object?>>> SortMap =
         new(StringComparer.OrdinalIgnoreCase)
         {
-            ["fullname"] = p => p.FullName,
-            ["id"] = p => p.Id,
-            ["contactinfo"] = p => p.ContactInfo
+            ["fullname"] = p => p.FullName, ["id"] = p => p.Id, ["contactinfo"] = p => p.ContactInfo
         };
 
     public async Task<bool> ExistsForTherapistAsync(int patientId, CancellationToken ct)
     {
-        var therapistId = await therapistService.GetCurrentTherapistIdOrThrowAsync(ct);
+        int therapistId = await therapistService.GetCurrentTherapistIdOrThrowAsync(ct);
 
         return await context.Patients
             .AsNoTracking()
@@ -31,14 +29,14 @@ public class PatientService(LogopedicContext context, ITherapistService therapis
 
     public async Task<Patient?> GetByIdAsync(int patientId, CancellationToken ct = default)
     {
-        var therapistId = await therapistService.GetCurrentTherapistIdOrThrowAsync(ct);
+        int therapistId = await therapistService.GetCurrentTherapistIdOrThrowAsync(ct);
 
         return await context.Patients.SingleOrDefaultAsync(p => p.Id == patientId && p.TherapistId == therapistId, ct);
     }
 
     public async Task<PatientDto?> GetPatientDtoByIdAsync(int patientId, CancellationToken ct = default)
     {
-        var therapistId = await therapistService.GetCurrentTherapistIdOrThrowAsync(ct);
+        int therapistId = await therapistService.GetCurrentTherapistIdOrThrowAsync(ct);
 
         return await context.Patients
             .Where(p => p.Id == patientId && p.TherapistId == therapistId)
@@ -55,9 +53,9 @@ public class PatientService(LogopedicContext context, ITherapistService therapis
 
     public async Task<IReadOnlyList<PatientDto>> GetAllAsync(CancellationToken ct = default)
     {
-        var therapistId = await therapistService.GetCurrentTherapistIdOrThrowAsync(ct);
+        int therapistId = await therapistService.GetCurrentTherapistIdOrThrowAsync(ct);
 
-        var patients = await context.Patients
+        List<PatientDto> patients = await context.Patients
             .AsNoTracking()
             .Where(p => p.TherapistId == therapistId)
             .Select(p => new PatientDto
@@ -76,7 +74,7 @@ public class PatientService(LogopedicContext context, ITherapistService therapis
     public async Task<OneOf<PagedResultDto<PatientDto>, InvalidPageSizeError>> QueryAsync(PatientQueryParameters query,
         CancellationToken ct = default)
     {
-        var pageNumber = query.PageNumber;
+        int pageNumber = query.PageNumber;
 
         const int minPageSize = 1;
         const int maxPageSize = 200;
@@ -86,11 +84,11 @@ public class PatientService(LogopedicContext context, ITherapistService therapis
             return new InvalidPageSizeError(query.PageSize, minPageSize, maxPageSize);
         }
 
-        var pageSize = query.PageSize;
+        int pageSize = query.PageSize;
 
-        var therapistId = await therapistService.GetCurrentTherapistIdOrThrowAsync(ct);
+        int therapistId = await therapistService.GetCurrentTherapistIdOrThrowAsync(ct);
 
-        var baseQuery = context.Patients
+        IQueryable<Patient> baseQuery = context.Patients
             .AsNoTracking()
             .Where(p => p.TherapistId == therapistId);
 
@@ -105,10 +103,10 @@ public class PatientService(LogopedicContext context, ITherapistService therapis
             baseQuery = ApplySorting(baseQuery, query.Sort);
         }
 
-        var totalCount = await baseQuery.CountAsync(ct);
-        var skip = (pageNumber - 1) * pageSize;
+        int totalCount = await baseQuery.CountAsync(ct);
+        int skip = (pageNumber - 1) * pageSize;
 
-        var items = await baseQuery.Skip(skip)
+        List<PatientDto> items = await baseQuery.Skip(skip)
             .Take(pageSize)
             .Select(p => new PatientDto
             {
@@ -122,18 +120,23 @@ public class PatientService(LogopedicContext context, ITherapistService therapis
 
         return new PagedResultDto<PatientDto>
         {
-            Items = items,
-            TotalCount = totalCount,
-            PageNumber = pageNumber,
-            PageSize = pageSize
+            Items = items, TotalCount = totalCount, PageNumber = pageNumber, PageSize = pageSize
         };
     }
 
-    public async Task<PatientCreated> CreateAsync(CreatePatientDto dto, CancellationToken ct = default)
+    public async Task<OneOf<PatientCreated, InvalidDateOfBirthError>> CreateAsync(CreatePatientDto dto,
+        CancellationToken ct = default)
     {
-        var therapist = await therapistService.GetCurrentTherapistOrThrowAsync(ct);
+        // Disallow DoBs in the future or more than 120 years in the past
+        DateOnly dateNow = DateOnly.FromDateTime(DateTime.UtcNow);
+        if (dto.DateOfBirth < dateNow.AddYears(-120) || dto.DateOfBirth > dateNow)
+        {
+            return new InvalidDateOfBirthError(dto.DateOfBirth, dateNow.AddYears(-120), dateNow);
+        }
 
-        var patient = new Patient
+        Therapist therapist = await therapistService.GetCurrentTherapistOrThrowAsync(ct);
+
+        Patient patient = new()
         {
             FullName = dto.FullName,
             DateOfBirth = dto.DateOfBirth,
@@ -146,7 +149,7 @@ public class PatientService(LogopedicContext context, ITherapistService therapis
         context.Patients.Add(patient);
         await context.SaveChangesAsync(ct);
 
-        var result = new PatientDto
+        PatientDto result = new()
         {
             Id = patient.Id,
             FullName = patient.FullName,
@@ -161,33 +164,37 @@ public class PatientService(LogopedicContext context, ITherapistService therapis
     public async Task<OneOf<PatientUpdated, PatientNotFound>> UpdateAsync(int id, UpdatePatientDto dto,
         CancellationToken ct = default)
     {
-        var therapistId = await therapistService.GetCurrentTherapistIdOrThrowAsync(ct);
+        Patient? patient = await GetByIdAsync(id, ct);
+        if (patient is null)
+        {
+            return new PatientNotFound(id);
+        }
 
         if (dto.FullName is null && dto.DateOfBirth is null && dto.ContactInfo is null && dto.Notes is null)
         {
             return new PatientUpdated();
         }
 
-        var rows = await context.Patients
-            .Where(p => p.Id == id && p.TherapistId == therapistId)
-            .ExecuteUpdateAsync(setter => setter.SetProperty(p => p.FullName, p => dto.FullName ?? p.FullName)
-                .SetProperty(p => p.DateOfBirth, p => dto.DateOfBirth ?? p.DateOfBirth)
-                .SetProperty(p => p.ContactInfo, p => dto.ContactInfo ?? p.ContactInfo)
-                .SetProperty(p => p.Notes, p => dto.Notes ?? p.Notes), ct);
+        string newFullName = dto.FullName ?? patient.FullName;
+        DateOnly newDateOfBirth = dto.DateOfBirth ?? patient.DateOfBirth;
+        string newContactInfo = dto.ContactInfo ?? patient.ContactInfo;
+        string? newNotes = dto.Notes ?? patient.Notes;
 
-        if (rows == 0)
-        {
-            return new PatientNotFound(id);
-        }
+        patient.FullName = newFullName;
+        patient.DateOfBirth = newDateOfBirth;
+        patient.ContactInfo = newContactInfo;
+        patient.Notes = newNotes;
+
+        await context.SaveChangesAsync(ct);
 
         return new PatientUpdated();
     }
 
     public async Task<bool> DeleteAsync(int id, CancellationToken ct = default)
     {
-        var therapistId = await therapistService.GetCurrentTherapistIdOrThrowAsync(ct);
+        int therapistId = await therapistService.GetCurrentTherapistIdOrThrowAsync(ct);
 
-        var rows = await context.Patients
+        int rows = await context.Patients
             .Where(a => a.Id == id && a.TherapistId == therapistId)
             .ExecuteDeleteAsync(ct);
 
@@ -201,18 +208,18 @@ public class PatientService(LogopedicContext context, ITherapistService therapis
             sort = "fullName:asc";
         }
 
-        var clauses = sort.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        string[] clauses = sort.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
         IOrderedQueryable<Patient>? ordered = null;
 
-        foreach (var clause in clauses)
+        foreach (string clause in clauses)
         {
-            var parts = clause.Split(':', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-            var field = parts[0];
-            var direction = parts.Length > 1 ? parts[1] : "asc";
+            string[] parts = clause.Split(':', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            string field = parts[0];
+            string direction = parts.Length > 1 ? parts[1] : "asc";
 
             // Skip fields which don't correspond to allowed sorting fields
-            if (!SortMap.TryGetValue(field, out var selector))
+            if (!SortMap.TryGetValue(field, out Expression<Func<Patient, object?>>? selector))
             {
                 continue;
             }

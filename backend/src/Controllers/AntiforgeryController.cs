@@ -15,7 +15,7 @@ public class AntiforgeryController(IAntiforgery antiforgery) : ControllerBase
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public ActionResult<TokenResponse> GetToken()
     {
-        var tokens = antiforgery.GetAndStoreTokens(HttpContext);
+        AntiforgeryTokenSet tokens = antiforgery.GetAndStoreTokens(HttpContext);
 
         if (tokens.RequestToken is null)
         {

@@ -16,21 +16,15 @@ public class IntegrationTestWebAppFactory : WebApplicationFactory<Program>, IAsy
         .WithPassword("postgres")
         .Build();
 
-    public Task InitializeAsync()
-    {
-        return _dbContainer.StartAsync();
-    }
+    public Task InitializeAsync() => _dbContainer.StartAsync();
 
-    public new Task DisposeAsync()
-    {
-        return _dbContainer.StopAsync();
-    }
+    public new Task DisposeAsync() => _dbContainer.StopAsync();
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.ConfigureServices(services =>
         {
-            var dbContextDescriptor =
+            ServiceDescriptor? dbContextDescriptor =
                 services.SingleOrDefault(s => s.ServiceType == typeof(DbContextOptions<LogopedicContext>));
 
             if (dbContextDescriptor is not null)
@@ -38,14 +32,15 @@ public class IntegrationTestWebAppFactory : WebApplicationFactory<Program>, IAsy
                 services.Remove(dbContextDescriptor);
             }
 
-            var dbConnectionDescriptor = services.SingleOrDefault(s => s.ServiceType == typeof(DbConnection));
+            ServiceDescriptor? dbConnectionDescriptor =
+                services.SingleOrDefault(s => s.ServiceType == typeof(DbConnection));
 
             if (dbConnectionDescriptor is not null)
             {
                 services.Remove(dbConnectionDescriptor);
             }
 
-            var connectionString = _dbContainer.GetConnectionString() + ";Include Error Detail=true";
+            string connectionString = _dbContainer.GetConnectionString() + ";Include Error Detail=true";
             services.AddDbContext<LogopedicContext>(options => { options.UseNpgsql(connectionString); });
         });
 

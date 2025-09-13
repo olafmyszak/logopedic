@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc.Filters;
+﻿using System.Reflection;
+using Microsoft.AspNetCore.Mvc.Filters;
 
 namespace LogopedicBackend.Filters;
 
@@ -6,20 +7,20 @@ public class TrimModelStringsFilter : IActionFilter
 {
     public void OnActionExecuting(ActionExecutingContext context)
     {
-        foreach (var value in context.ActionArguments.Values)
+        foreach (object? value in context.ActionArguments.Values)
         {
             if (value is null)
             {
                 continue;
             }
 
-            var stringProperties = value.GetType()
+            IEnumerable<PropertyInfo> stringProperties = value.GetType()
                 .GetProperties()
                 .Where(p => p.PropertyType == typeof(string) && p is { CanRead: true, CanWrite: true });
 
-            foreach (var stringProperty in stringProperties)
+            foreach (PropertyInfo stringProperty in stringProperties)
             {
-                var str = (string?)stringProperty.GetValue(value);
+                string? str = (string?)stringProperty.GetValue(value);
 
                 if (str is not null)
                 {

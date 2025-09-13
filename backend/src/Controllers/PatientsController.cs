@@ -1,8 +1,12 @@
 ﻿using LogopedicBackend.Constants;
 using LogopedicBackend.Dtos;
 using LogopedicBackend.Services;
+using LogopedicBackend.Services.Results.Common.NotFound;
+using LogopedicBackend.Services.Results.Common.Paging;
+using LogopedicBackend.Services.Results.Patients;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using OneOf;
 
 namespace LogopedicBackend.Controllers;
 
@@ -20,10 +24,10 @@ public class PatientsController(IPatientService patientService) : ControllerBase
     public async Task<ActionResult<PagedResultDto<PatientDto>>> GetAll([FromQuery] PatientQueryParameters query,
         CancellationToken ct)
     {
-        var result = await patientService.QueryAsync(query, ct);
+        OneOf<PagedResultDto<PatientDto>, InvalidPageSizeError> result = await patientService.QueryAsync(query, ct);
 
-        return result.Match<ActionResult<PagedResultDto<PatientDto>>>(pagedResult => Ok(pagedResult), pageSizeError =>
-            ValidationProblem(new ValidationProblemDetails(new Dictionary<string, string[]>
+        return result.Match<ActionResult<PagedResultDto<PatientDto>>>(pagedResult => Ok(pagedResult),
+            pageSizeError => ValidationProblem(new ValidationProblemDetails(new Dictionary<string, string[]>
             {
                 ["pageSize"] =
                 [
@@ -42,12 +46,14 @@ public class PatientsController(IPatientService patientService) : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<PatientDto>> GetPatientById(int id, CancellationToken ct)
     {
-        var patient = await patientService.GetPatientDtoByIdAsync(id, ct);
+        PatientDto? patient = await patientService.GetPatientDtoByIdAsync(id, ct);
 
         if (patient is null)
         {
             return Problem($"Patient with id {id} does not exist or does not belong to the current user",
-                HttpContext.Request.Path, StatusCodes.Status404NotFound, "Patient not found");
+                HttpContext.Request.Path,
+                StatusCodes.Status404NotFound,
+                "Patient not found");
         }
 
         return Ok(patient);
@@ -57,8 +63,10 @@ public class PatientsController(IPatientService patientService) : ControllerBase
     [ProducesResponseType(StatusCodes.Status201Created)]
     public async Task<ActionResult<PatientDto>> CreatePatient(CreatePatientDto dto, CancellationToken ct)
     {
-        var result = await patientService.CreateAsync(dto, ct);
-        return CreatedAtAction(nameof(GetPatientById), new { id = result.Patient.Id }, result.Patient);
+        OneOf<PatientCreated, InvalidDateOfBirthError> result = await patientService.CreateAsync(dto, ct);
+        return result.Match<ActionResult<PatientDto>>(
+            created => CreatedAtAction(nameof(GetPatientById), new { id = created.Patient.Id }, created.Patient),
+            invalidDateOfBirthError => ValidationProblem());
     }
 
     [HttpPatch("{id:int}")]
@@ -66,12 +74,14 @@ public class PatientsController(IPatientService patientService) : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UpdatePatient(int id, UpdatePatientDto dto, CancellationToken ct)
     {
-        var result = await patientService.UpdateAsync(id, dto, ct);
+        OneOf<PatientUpdated, PatientNotFound> result = await patientService.UpdateAsync(id, dto, ct);
 
         return result.Match<IActionResult>(_ => NoContent(),
             patientNotFound => Problem(
                 $"Patient with id {patientNotFound.PatientId} does not exist or does not belong to the current user",
-                HttpContext.Request.Path, StatusCodes.Status404NotFound, "Patient not found"));
+                HttpContext.Request.Path,
+                StatusCodes.Status404NotFound,
+                "Patient not found"));
     }
 
     [HttpDelete("{id:int}")]
@@ -79,12 +89,14 @@ public class PatientsController(IPatientService patientService) : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeletePatient(int id, CancellationToken ct)
     {
-        var deleted = await patientService.DeleteAsync(id, ct);
+        bool deleted = await patientService.DeleteAsync(id, ct);
 
         if (!deleted)
         {
             return Problem($"Patient with id {id} does not exist or does not belong to the current user",
-                HttpContext.Request.Path, StatusCodes.Status404NotFound, "Patient not found");
+                HttpContext.Request.Path,
+                StatusCodes.Status404NotFound,
+                "Patient not found");
         }
 
         return NoContent();

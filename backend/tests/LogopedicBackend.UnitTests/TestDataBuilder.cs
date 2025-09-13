@@ -13,12 +13,10 @@ public class TestDataBuilder
     private Therapist? _therapist;
     private User? _user;
 
-    public TestDataBuilder()
-    {
+    public TestDataBuilder() =>
         _options = new DbContextOptionsBuilder<LogopedicContext>().UseInMemoryDatabase(Guid.NewGuid()
                 .ToString()) // unique DB per test
             .Options;
-    }
 
     public TestDataBuilder WithUser(User? user = null)
     {
@@ -40,10 +38,7 @@ public class TestDataBuilder
 
         _therapist = therapist ?? new Therapist
         {
-            Id = new Random().Next(1, 10000),
-            FullName = "Mark Smith",
-            UserId = _user!.Id,
-            User = _user
+            Id = new Random().Next(1, 10000), FullName = "Mark Smith", UserId = _user!.Id, User = _user
         };
 
         return this;
@@ -100,7 +95,7 @@ public class TestDataBuilder
     public async Task<( LogopedicContext Context, User? User, Therapist? Therapist, Patient? Patient, Appointment?
         Appointment )> BuildAsync()
     {
-        var ctx = new LogopedicContext(_options);
+        LogopedicContext ctx = new(_options);
 
         if (_user != null)
         {

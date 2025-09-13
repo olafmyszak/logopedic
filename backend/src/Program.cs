@@ -11,7 +11,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 
-var builder = WebApplication.CreateBuilder(args);
+WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
@@ -19,19 +19,20 @@ builder.Services.AddProblemDetails();
 builder.Services.AddAuthorization();
 builder.Services
     .AddAuthentication()
-    .AddCookie(IdentityConstants.ApplicationScheme, options =>
-    {
-        options.Events.OnRedirectToLogin = ctx =>
+    .AddCookie(IdentityConstants.ApplicationScheme,
+        options =>
         {
-            ctx.Response.StatusCode = StatusCodes.Status401Unauthorized;
-            return Task.CompletedTask;
-        };
-        options.Events.OnRedirectToAccessDenied = ctx =>
-        {
-            ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
-            return Task.CompletedTask;
-        };
-    });
+            options.Events.OnRedirectToLogin = ctx =>
+            {
+                ctx.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                return Task.CompletedTask;
+            };
+            options.Events.OnRedirectToAccessDenied = ctx =>
+            {
+                ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
+                return Task.CompletedTask;
+            };
+        });
 
 builder.Services
     .AddIdentityCore<User>(options =>
@@ -81,13 +82,14 @@ else
 
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("LocalDev", policy =>
-    {
-        policy.WithOrigins("http://localhost:4200")
-            .AllowAnyHeader()
-            .AllowAnyMethod()
-            .AllowCredentials();
-    });
+    options.AddPolicy("LocalDev",
+        policy =>
+        {
+            policy.WithOrigins("http://localhost:4200")
+                .AllowAnyHeader()
+                .AllowAnyMethod()
+                .AllowCredentials();
+        });
 });
 
 builder.Services.AddScoped<AdminService>();
@@ -98,7 +100,7 @@ builder.Services.AddScoped<ITherapistService, TherapistService>();
 builder.Services.AddScoped<IAppointmentService, AppointmentService>();
 builder.Services.AddScoped<IPatientService, PatientService>();
 
-var keysFolder = new DirectoryInfo("/keys");
+DirectoryInfo keysFolder = new("/keys");
 builder.Services
     .AddDataProtection()
     .PersistKeysToFileSystem(keysFolder)
@@ -109,25 +111,22 @@ builder.Services.AddSwaggerGen(options =>
 {
     options.SupportNonNullableReferenceTypes();
 
-    options.AddSecurityDefinition("X-XSRF-TOKEN", new OpenApiSecurityScheme
-    {
-        Description = "Anti-forgery token",
-        Name = "X-XSRF-TOKEN",
-        In = ParameterLocation.Header,
-        Type = SecuritySchemeType.ApiKey,
-        Scheme = "X-XSRF-TOKEN"
-    });
+    options.AddSecurityDefinition("X-XSRF-TOKEN",
+        new OpenApiSecurityScheme
+        {
+            Description = "Anti-forgery token",
+            Name = "X-XSRF-TOKEN",
+            In = ParameterLocation.Header,
+            Type = SecuritySchemeType.ApiKey,
+            Scheme = "X-XSRF-TOKEN"
+        });
 
     options.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
             new OpenApiSecurityScheme
             {
-                Reference = new OpenApiReference
-                {
-                    Type = ReferenceType.SecurityScheme,
-                    Id = "X-XSRF-TOKEN"
-                },
+                Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "X-XSRF-TOKEN" },
                 Scheme = "X-XSRF-TOKEN",
                 Name = "X-XSRF-TOKEN",
                 In = ParameterLocation.Header
@@ -137,7 +136,7 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
-var app = builder.Build();
+WebApplication app = builder.Build();
 
 if (app.Environment.IsDevelopment())
 {

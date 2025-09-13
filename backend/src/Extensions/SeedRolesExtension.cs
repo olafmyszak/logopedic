@@ -7,14 +7,14 @@ public static class SeedRolesExtension
 {
     public static async Task SeedRolesAsync(this IApplicationBuilder app)
     {
-        using var scope = app.ApplicationServices.CreateScope();
-        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+        using IServiceScope scope = app.ApplicationServices.CreateScope();
+        RoleManager<IdentityRole> roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
 
         string[] roles = [AppRoles.Therapist, AppRoles.Admin];
 
-        foreach (var role in roles)
+        foreach (string role in roles)
         {
-            var roleExists = await roleManager.RoleExistsAsync(role);
+            bool roleExists = await roleManager.RoleExistsAsync(role);
             if (!roleExists)
             {
                 await roleManager.CreateAsync(new IdentityRole(role));

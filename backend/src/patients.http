@@ -10,11 +10,11 @@ Content-Type: application/json
 Accept: application/json
 
 {
-  "fullName": "John Doe",
-  "dateOfBirth": "1990-05-12T00:00:00Z",
-  "contactInfo": "john.doe@example.com, +1-555-123-4567",
-  "notes": "First consultation scheduled next week.",
-  "therapistId": -1
+    "fullName": "John Doe",
+    "dateOfBirth": "1990-05-12T00:00:00Z",
+    "contactInfo": "john.doe@example.com, +1-555-123-4567",
+    "notes": "First consultation scheduled next week.",
+    "therapistId": -1
 }
 
 ### PATCH patient
@@ -22,10 +22,10 @@ PATCH http://localhost:5000/api/patients/5
 Content-Type: application/json
 
 {
-  "FullName": "Updated Name",
-  "ContactInfo": "new.email@example.com",
-  "Notes": "Updated notes",
-  "TherapistId": 2
+    "FullName": "Updated Name",
+    "ContactInfo": "new.email@example.com",
+    "Notes": "Updated notes",
+    "TherapistId": 2
 }
 
 ### DELETE patient

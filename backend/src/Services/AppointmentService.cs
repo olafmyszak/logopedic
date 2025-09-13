@@ -19,9 +19,9 @@ public class AppointmentService(
 {
     public async Task<AppointmentDto?> GetByIdAsync(int id, CancellationToken ct = default)
     {
-        var therapistId = await therapistService.GetCurrentTherapistIdOrThrowAsync(ct);
+        int therapistId = await therapistService.GetCurrentTherapistIdOrThrowAsync(ct);
 
-        var appointment = await context.Appointments
+        AppointmentDto? appointment = await context.Appointments
             .AsNoTracking()
             .Where(a => a.Id == id && a.TherapistId == therapistId)
             .Select(a => new AppointmentDto
@@ -48,28 +48,32 @@ public class AppointmentService(
 
         if (query.PageSize is > AppointmentQueryParameters.MaxPageSize or < AppointmentQueryParameters.MinPageSize)
         {
-            return new InvalidPageSizeError(query.PageSize, AppointmentQueryParameters.MinPageSize,
+            return new InvalidPageSizeError(query.PageSize,
+                AppointmentQueryParameters.MinPageSize,
                 AppointmentQueryParameters.MaxPageSize);
         }
 
-        var therapistId = await therapistService.GetCurrentTherapistIdOrThrowAsync(ct);
+        int therapistId = await therapistService.GetCurrentTherapistIdOrThrowAsync(ct);
 
-        var baseQuery = context.Appointments
+        IQueryable<Appointment> baseQuery = context.Appointments
             .AsNoTracking()
             .Where(a => a.TherapistId == therapistId && a.StartTime >= query.From && a.StartTime < query.To);
 
         baseQuery = ApplyFiltering(baseQuery, query);
         baseQuery = ApplySorting(baseQuery, query);
 
-        return await baseQuery.ToPagedResultAsync(query.PageNumber, query.PageSize, a => new AppointmentDto
-        {
-            Id = a.Id,
-            PatientId = a.PatientId,
-            StartTime = a.StartTime,
-            DurationInMinutes = a.DurationInMinutes,
-            Type = a.Type,
-            Status = a.Status
-        }, ct);
+        return await baseQuery.ToPagedResultAsync(query.PageNumber,
+            query.PageSize,
+            a => new AppointmentDto
+            {
+                Id = a.Id,
+                PatientId = a.PatientId,
+                StartTime = a.StartTime,
+                DurationInMinutes = a.DurationInMinutes,
+                Type = a.Type,
+                Status = a.Status
+            },
+            ct);
     }
 
     public async Task<OneOf<AppointmentCreated, PatientNotFound, TimeConflict, DurationZeroOrLess>> CreateAsync(
@@ -80,9 +84,9 @@ public class AppointmentService(
             return new DurationZeroOrLess(dto.DurationInMinutes);
         }
 
-        var therapist = await therapistService.GetCurrentTherapistOrThrowAsync(ct);
+        Therapist therapist = await therapistService.GetCurrentTherapistOrThrowAsync(ct);
 
-        var patient = await patientService.GetByIdAsync(dto.PatientId, ct);
+        Patient? patient = await patientService.GetByIdAsync(dto.PatientId, ct);
 
         if (patient is null)
         {
@@ -90,8 +94,8 @@ public class AppointmentService(
         }
 
         // Check for overlapping appointments
-        var endTime = dto.StartTime.AddMinutes(dto.DurationInMinutes);
-        var conflictingAppointments = await context.Appointments
+        DateTimeOffset endTime = dto.StartTime.AddMinutes(dto.DurationInMinutes);
+        List<AppointmentDto> conflictingAppointments = await context.Appointments
             .AsNoTracking()
             .Where(a => a.TherapistId == therapist.Id && a.StartTime < endTime &&
                         a.StartTime.AddMinutes(a.DurationInMinutes) > dto.StartTime)
@@ -111,7 +115,7 @@ public class AppointmentService(
             return new TimeConflict(dto.StartTime, endTime, conflictingAppointments);
         }
 
-        var appointment = new Appointment
+        Appointment appointment = new()
         {
             StartTime = dto.StartTime,
             DurationInMinutes = dto.DurationInMinutes,
@@ -126,7 +130,7 @@ public class AppointmentService(
         context.Appointments.Add(appointment);
         await context.SaveChangesAsync(ct);
 
-        var result = new AppointmentDto
+        AppointmentDto result = new()
         {
             Id = appointment.Id,
             PatientId = patient.Id,
@@ -142,10 +146,11 @@ public class AppointmentService(
     public async Task<OneOf<AppointmentUpdated, AppointmentNotFound, PatientNotFound, DurationZeroOrLess, TimeConflict>>
         PatchAsync(int id, PatchAppointmentDto dto, CancellationToken ct = default)
     {
-        var therapistId = await therapistService.GetCurrentTherapistIdOrThrowAsync(ct);
+        int therapistId = await therapistService.GetCurrentTherapistIdOrThrowAsync(ct);
 
-        var appointment =
-            await context.Appointments.SingleOrDefaultAsync(a => a.Id == id && a.TherapistId == therapistId, ct);
+        Appointment? appointment = await context.Appointments
+            .Include(appointment => appointment.Patient)
+            .SingleOrDefaultAsync(a => a.Id == id && a.TherapistId == therapistId, ct);
 
         if (appointment is null)
         {
@@ -159,25 +164,25 @@ public class AppointmentService(
             return new AppointmentUpdated();
         }
 
-        var newStartTime = dto.StartTime ?? appointment.StartTime;
-        var newDurationInMinutes = dto.DurationInMinutes ?? appointment.DurationInMinutes;
-        var newType = dto.Type ?? appointment.Type;
-        var newStatus = dto.Status ?? appointment.Status;
-        var newPatientId = dto.PatientId ?? appointment.PatientId;
+        DateTimeOffset newStartTime = dto.StartTime ?? appointment.StartTime;
+        int newDurationInMinutes = dto.DurationInMinutes ?? appointment.DurationInMinutes;
+        AppointmentType newType = dto.Type ?? appointment.Type;
+        AppointmentStatus newStatus = dto.Status ?? appointment.Status;
+        int newPatientId = dto.PatientId ?? appointment.PatientId;
 
         if (newDurationInMinutes <= 0)
         {
             return new DurationZeroOrLess(newDurationInMinutes);
         }
 
-        var patientExists = await patientService.ExistsForTherapistAsync(newPatientId, ct);
+        bool patientExists = await patientService.ExistsForTherapistAsync(newPatientId, ct);
         if (!patientExists)
         {
             return new PatientNotFound(newPatientId);
         }
 
-        var endTime = newStartTime.AddMinutes(newDurationInMinutes);
-        var conflictingAppointments = await context.Appointments
+        DateTimeOffset endTime = newStartTime.AddMinutes(newDurationInMinutes);
+        List<AppointmentDto> conflictingAppointments = await context.Appointments
             .AsNoTracking()
             .Where(a => a.Id != id && // Exclude currently updated appointment or it will always conflict
                         a.TherapistId == therapistId && a.StartTime < endTime &&
@@ -206,13 +211,19 @@ public class AppointmentService(
 
         await context.SaveChangesAsync(ct);
 
+        using ILoggerFactory factory = LoggerFactory.Create(builder => builder.AddConsole());
+        ILogger logger = factory.CreateLogger<AppointmentService>();
+        logger.LogInformation("{id}", appointment.PatientId.ToString());
+        logger.LogInformation("{id}", appointment.Patient.Id.ToString());
+
         return new AppointmentUpdated();
     }
 
     public async Task<bool> DeleteAsync(int id, CancellationToken ct = default)
     {
-        var therapistId = await therapistService.GetCurrentTherapistIdOrThrowAsync(ct);
-        var appointment = context.Appointments.SingleOrDefault(a => a.Id == id && a.TherapistId == therapistId);
+        int therapistId = await therapistService.GetCurrentTherapistIdOrThrowAsync(ct);
+        Appointment? appointment =
+            context.Appointments.SingleOrDefault(a => a.Id == id && a.TherapistId == therapistId);
 
         if (appointment is null)
         {
@@ -249,16 +260,16 @@ public class AppointmentService(
     private static IQueryable<Appointment> ApplySorting(IQueryable<Appointment> baseQuery,
         AppointmentQueryParameters query)
     {
-        var sort = query.Sort;
+        string sort = query.Sort;
 
         if (string.IsNullOrWhiteSpace(sort))
         {
             sort = "startTime:asc";
         }
 
-        var clauses = sort.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        string[] clauses = sort.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
-        var map = new Dictionary<string, Expression<Func<Appointment, object?>>>(StringComparer.OrdinalIgnoreCase)
+        Dictionary<string, Expression<Func<Appointment, object?>>> map = new(StringComparer.OrdinalIgnoreCase)
         {
             ["id"] = a => a.Id,
             ["starttime"] = a => a.StartTime,
@@ -269,16 +280,16 @@ public class AppointmentService(
 
         IOrderedQueryable<Appointment>? ordered = null;
 
-        var hasIdSort = false;
+        bool hasIdSort = false;
 
-        foreach (var clause in clauses)
+        foreach (string clause in clauses)
         {
-            var parts = clause.Split(':', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-            var field = parts[0];
-            var direction = parts.Length > 1 ? parts[1] : "asc";
+            string[] parts = clause.Split(':', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            string field = parts[0];
+            string direction = parts.Length > 1 ? parts[1] : "asc";
 
             // Skip fields which don't correspond to allowed sorting fields
-            if (!map.TryGetValue(field, out var selector))
+            if (!map.TryGetValue(field, out Expression<Func<Appointment, object?>>? selector))
             {
                 continue;
             }
