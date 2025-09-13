@@ -17,7 +17,7 @@ public interface IPatientService
     Task<OneOf<PagedResultDto<PatientDto>, InvalidPageSizeError>> QueryAsync(PatientQueryParameters query,
         CancellationToken ct = default);
 
-    Task<OneOf<PatientCreated, InvalidDateOfBirthError>> CreateAsync(CreatePatientDto dto,
+    Task<OneOf<PatientCreated, EmptyFullNameError, InvalidDateOfBirthError>> CreateAsync(CreatePatientDto dto,
         CancellationToken ct = default);
 
     Task<OneOf<PatientUpdated, PatientNotFound>> UpdateAsync(int id, UpdatePatientDto dto,

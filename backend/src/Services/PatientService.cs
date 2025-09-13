@@ -1,6 +1,7 @@
 ﻿using System.Linq.Expressions;
 using LogopedicBackend.Data;
 using LogopedicBackend.Dtos;
+using LogopedicBackend.Extensions;
 using LogopedicBackend.Models;
 using LogopedicBackend.Services.Results.Common.NotFound;
 using LogopedicBackend.Services.Results.Common.Paging;
@@ -12,7 +13,7 @@ namespace LogopedicBackend.Services;
 
 public class PatientService(LogopedicContext context, ITherapistService therapistService) : IPatientService
 {
-    private static readonly Dictionary<string, Expression<Func<Patient, object?>>> SortMap =
+    private static readonly Dictionary<string, Expression<Func<Patient, object?>>> s_sortMap =
         new(StringComparer.OrdinalIgnoreCase)
         {
             ["fullname"] = p => p.FullName, ["id"] = p => p.Id, ["contactinfo"] = p => p.ContactInfo
@@ -39,6 +40,7 @@ public class PatientService(LogopedicContext context, ITherapistService therapis
         int therapistId = await therapistService.GetCurrentTherapistIdOrThrowAsync(ct);
 
         return await context.Patients
+            .AsNoTracking()
             .Where(p => p.Id == patientId && p.TherapistId == therapistId)
             .Select(p => new PatientDto
             {
@@ -74,17 +76,12 @@ public class PatientService(LogopedicContext context, ITherapistService therapis
     public async Task<OneOf<PagedResultDto<PatientDto>, InvalidPageSizeError>> QueryAsync(PatientQueryParameters query,
         CancellationToken ct = default)
     {
-        int pageNumber = query.PageNumber;
-
-        const int minPageSize = 1;
-        const int maxPageSize = 200;
-
-        if (query.PageSize is > maxPageSize or < minPageSize)
+        if (query.PageSize is > PatientQueryParameters.MaxPageSize or < PatientQueryParameters.MinPageSize)
         {
-            return new InvalidPageSizeError(query.PageSize, minPageSize, maxPageSize);
+            return new InvalidPageSizeError(query.PageSize,
+                PatientQueryParameters.MinPageSize,
+                PatientQueryParameters.MaxPageSize);
         }
-
-        int pageSize = query.PageSize;
 
         int therapistId = await therapistService.GetCurrentTherapistIdOrThrowAsync(ct);
 
@@ -96,37 +93,35 @@ public class PatientService(LogopedicContext context, ITherapistService therapis
         {
             baseQuery = baseQuery.Where(p => EF.Functions.ILike(p.SearchText, $"%{query.Search}%"))
                 .Where(p => EF.Functions.TrigramsSimilarity(p.SearchText, query.Search) > 0.2)
-                .OrderByDescending(p => EF.Functions.TrigramsSimilarity(p.SearchText, query.Search));
+                .OrderByDescending(p => EF.Functions.TrigramsSimilarity(p.SearchText, query.Search))
+                .ThenBy(p => p.Id);
         }
         else
         {
-            baseQuery = ApplySorting(baseQuery, query.Sort);
+            baseQuery = ApplySorting(baseQuery, query);
         }
 
-        int totalCount = await baseQuery.CountAsync(ct);
-        int skip = (pageNumber - 1) * pageSize;
-
-        List<PatientDto> items = await baseQuery.Skip(skip)
-            .Take(pageSize)
-            .Select(p => new PatientDto
+        return await baseQuery.ToPagedResultAsync(query.PageNumber,
+            query.PageSize,
+            p => new PatientDto
             {
                 Id = p.Id,
                 FullName = p.FullName,
                 DateOfBirth = p.DateOfBirth,
                 ContactInfo = p.ContactInfo,
                 Notes = p.Notes
-            })
-            .ToListAsync(ct);
-
-        return new PagedResultDto<PatientDto>
-        {
-            Items = items, TotalCount = totalCount, PageNumber = pageNumber, PageSize = pageSize
-        };
+            },
+            ct);
     }
 
-    public async Task<OneOf<PatientCreated, InvalidDateOfBirthError>> CreateAsync(CreatePatientDto dto,
-        CancellationToken ct = default)
+    public async Task<OneOf<PatientCreated, EmptyFullNameError, InvalidDateOfBirthError>> CreateAsync(
+        CreatePatientDto dto, CancellationToken ct = default)
     {
+        if (string.IsNullOrWhiteSpace(dto.FullName))
+        {
+            return new EmptyFullNameError();
+        }
+
         // Disallow DoBs in the future or more than 120 years in the past
         DateOnly dateNow = DateOnly.FromDateTime(DateTime.UtcNow);
         if (dto.DateOfBirth < dateNow.AddYears(-120) || dto.DateOfBirth > dateNow)
@@ -192,17 +187,23 @@ public class PatientService(LogopedicContext context, ITherapistService therapis
 
     public async Task<bool> DeleteAsync(int id, CancellationToken ct = default)
     {
-        int therapistId = await therapistService.GetCurrentTherapistIdOrThrowAsync(ct);
+        Patient? patient = await GetByIdAsync(id, ct);
 
-        int rows = await context.Patients
-            .Where(a => a.Id == id && a.TherapistId == therapistId)
-            .ExecuteDeleteAsync(ct);
+        if (patient is null)
+        {
+            return false;
+        }
 
-        return rows > 0;
+        context.Patients.Remove(patient);
+        await context.SaveChangesAsync(ct);
+
+        return true;
     }
 
-    private static IQueryable<Patient> ApplySorting(IQueryable<Patient> baseQuery, string sort)
+    private static IQueryable<Patient> ApplySorting(IQueryable<Patient> baseQuery, PatientQueryParameters query)
     {
+        string sort = query.Sort;
+
         if (string.IsNullOrWhiteSpace(sort))
         {
             sort = "fullName:asc";
@@ -212,6 +213,8 @@ public class PatientService(LogopedicContext context, ITherapistService therapis
 
         IOrderedQueryable<Patient>? ordered = null;
 
+        bool hasIdSort = false;
+
         foreach (string clause in clauses)
         {
             string[] parts = clause.Split(':', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
@@ -219,9 +222,14 @@ public class PatientService(LogopedicContext context, ITherapistService therapis
             string direction = parts.Length > 1 ? parts[1] : "asc";
 
             // Skip fields which don't correspond to allowed sorting fields
-            if (!SortMap.TryGetValue(field, out Expression<Func<Patient, object?>>? selector))
+            if (!s_sortMap.TryGetValue(field, out Expression<Func<Patient, object?>>? selector))
             {
                 continue;
+            }
+
+            if (!hasIdSort && string.Equals(field, "id", StringComparison.OrdinalIgnoreCase))
+            {
+                hasIdSort = true;
             }
 
             if (ordered is null)
@@ -238,7 +246,17 @@ public class PatientService(LogopedicContext context, ITherapistService therapis
             }
         }
 
-        return ordered ?? baseQuery.OrderBy(p => p.FullName)
-            .ThenBy(p => p.Id);
+        if (ordered is null)
+        {
+            return baseQuery.OrderBy(p => p.FullName)
+                .ThenBy(a => a.Id);
+        }
+
+        if (!hasIdSort)
+        {
+            ordered = ordered.ThenBy(a => a.Id);
+        }
+
+        return ordered;
     }
 }

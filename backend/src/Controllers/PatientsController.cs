@@ -21,7 +21,7 @@ public class PatientsController(IPatientService patientService) : ControllerBase
 {
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<ActionResult<PagedResultDto<PatientDto>>> GetAll([FromQuery] PatientQueryParameters query,
+    public async Task<ActionResult<PagedResultDto<PatientDto>>> Query([FromQuery] PatientQueryParameters query,
         CancellationToken ct)
     {
         OneOf<PagedResultDto<PatientDto>, InvalidPageSizeError> result = await patientService.QueryAsync(query, ct);
@@ -44,7 +44,7 @@ public class PatientsController(IPatientService patientService) : ControllerBase
     [HttpGet("{id:int}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<PatientDto>> GetPatientById(int id, CancellationToken ct)
+    public async Task<ActionResult<PatientDto>> GetById(int id, CancellationToken ct)
     {
         PatientDto? patient = await patientService.GetPatientDtoByIdAsync(id, ct);
 
@@ -61,18 +61,42 @@ public class PatientsController(IPatientService patientService) : ControllerBase
 
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status201Created)]
-    public async Task<ActionResult<PatientDto>> CreatePatient(CreatePatientDto dto, CancellationToken ct)
+    public async Task<ActionResult<PatientDto>> Create(CreatePatientDto dto, CancellationToken ct)
     {
-        OneOf<PatientCreated, InvalidDateOfBirthError> result = await patientService.CreateAsync(dto, ct);
+        OneOf<PatientCreated, EmptyFullNameError, InvalidDateOfBirthError> result =
+            await patientService.CreateAsync(dto, ct);
         return result.Match<ActionResult<PatientDto>>(
-            created => CreatedAtAction(nameof(GetPatientById), new { id = created.Patient.Id }, created.Patient),
-            invalidDateOfBirthError => ValidationProblem());
+            created => CreatedAtAction(nameof(GetById), new { id = created.Patient.Id }, created.Patient),
+            emptyFullNameError => ValidationProblem(new ValidationProblemDetails(new Dictionary<string, string[]>
+            {
+                ["fullName"] =
+                [
+                    "Requested full name is empty"
+                ]
+            })
+            {
+                Title = "Invalid date of birth",
+                Status = StatusCodes.Status400BadRequest,
+                Instance = HttpContext.Request.Path
+            }),
+            invalidDateOfBirthError => ValidationProblem(new ValidationProblemDetails(new Dictionary<string, string[]>
+            {
+                ["dateOfBirth"] =
+                [
+                    $"Requested date of birth {invalidDateOfBirthError.Requested} is not in the required range: [{invalidDateOfBirthError.Min}, {invalidDateOfBirthError.Max}]"
+                ]
+            })
+            {
+                Title = "Invalid date of birth",
+                Status = StatusCodes.Status400BadRequest,
+                Instance = HttpContext.Request.Path
+            }));
     }
 
     [HttpPatch("{id:int}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> UpdatePatient(int id, UpdatePatientDto dto, CancellationToken ct)
+    public async Task<IActionResult> Update(int id, UpdatePatientDto dto, CancellationToken ct)
     {
         OneOf<PatientUpdated, PatientNotFound> result = await patientService.UpdateAsync(id, dto, ct);
 
@@ -87,7 +111,7 @@ public class PatientsController(IPatientService patientService) : ControllerBase
     [HttpDelete("{id:int}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> DeletePatient(int id, CancellationToken ct)
+    public async Task<IActionResult> Delete(int id, CancellationToken ct)
     {
         bool deleted = await patientService.DeleteAsync(id, ct);
 

@@ -17,6 +17,16 @@ public class AppointmentService(
     ITherapistService therapistService,
     IPatientService patientService) : IAppointmentService
 {
+    private static readonly Dictionary<string, Expression<Func<Appointment, object?>>> s_sortMap =
+        new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["id"] = a => a.Id,
+            ["starttime"] = a => a.StartTime,
+            ["duration"] = a => a.DurationInMinutes,
+            ["type"] = a => a.Type,
+            ["status"] = a => a.Status
+        };
+
     public async Task<AppointmentDto?> GetByIdAsync(int id, CancellationToken ct = default)
     {
         int therapistId = await therapistService.GetCurrentTherapistIdOrThrowAsync(ct);
@@ -175,8 +185,8 @@ public class AppointmentService(
             return new DurationZeroOrLess(newDurationInMinutes);
         }
 
-        bool patientExists = await patientService.ExistsForTherapistAsync(newPatientId, ct);
-        if (!patientExists)
+        Patient? patient = await patientService.GetByIdAsync(newPatientId, ct);
+        if (patient is null)
         {
             return new PatientNotFound(newPatientId);
         }
@@ -208,13 +218,9 @@ public class AppointmentService(
         appointment.Type = newType;
         appointment.Status = newStatus;
         appointment.PatientId = newPatientId;
+        appointment.Patient = patient;
 
         await context.SaveChangesAsync(ct);
-
-        using ILoggerFactory factory = LoggerFactory.Create(builder => builder.AddConsole());
-        ILogger logger = factory.CreateLogger<AppointmentService>();
-        logger.LogInformation("{id}", appointment.PatientId.ToString());
-        logger.LogInformation("{id}", appointment.Patient.Id.ToString());
 
         return new AppointmentUpdated();
     }
@@ -269,15 +275,6 @@ public class AppointmentService(
 
         string[] clauses = sort.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
-        Dictionary<string, Expression<Func<Appointment, object?>>> map = new(StringComparer.OrdinalIgnoreCase)
-        {
-            ["id"] = a => a.Id,
-            ["starttime"] = a => a.StartTime,
-            ["duration"] = a => a.DurationInMinutes,
-            ["type"] = a => a.Type,
-            ["status"] = a => a.Status
-        };
-
         IOrderedQueryable<Appointment>? ordered = null;
 
         bool hasIdSort = false;
@@ -289,7 +286,7 @@ public class AppointmentService(
             string direction = parts.Length > 1 ? parts[1] : "asc";
 
             // Skip fields which don't correspond to allowed sorting fields
-            if (!map.TryGetValue(field, out Expression<Func<Appointment, object?>>? selector))
+            if (!s_sortMap.TryGetValue(field, out Expression<Func<Appointment, object?>>? selector))
             {
                 continue;
             }
