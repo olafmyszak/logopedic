@@ -80,7 +80,7 @@ public class TestDataSeeder(LogopedicContext context, UserManager<User> userMana
 
     private async Task SeedPatients(int patientsPerTherapists)
     {
-        Faker<Patient>? patientFaker = new Faker<Patient>(Locale).RuleFor(p => p.FullName, f => f.Name.FullName())
+        Faker<Patient> patientFaker = new Faker<Patient>(Locale).RuleFor(p => p.FullName, f => f.Name.FullName())
             .RuleFor(p => p.DateOfBirth,
                 f => DateOnly.FromDateTime(f.Date.Between(DateTime.Today.AddYears(-25), DateTime.Today.AddYears(-5))))
             .RuleFor(p => p.ContactInfo, f => f.Random.Bool() ? f.Person.Email : f.Phone.PhoneNumber())
@@ -90,7 +90,7 @@ public class TestDataSeeder(LogopedicContext context, UserManager<User> userMana
         {
             for (int i = 0; i < patientsPerTherapists; ++i)
             {
-                Patient? patient = patientFaker.Generate();
+                Patient patient = patientFaker.Generate();
                 patient.TherapistId = therapist.Id;
                 patient.Therapist = therapist;
 
@@ -109,7 +109,7 @@ public class TestDataSeeder(LogopedicContext context, UserManager<User> userMana
 
         const int maxAttemptsPerAppointment = 200;
 
-        int[] durations = new[] { 15, 30, 45, 60, 90 };
+        int[] durations = [15, 30, 45, 60, 90];
 
         foreach (Patient patient in Patients)
         {

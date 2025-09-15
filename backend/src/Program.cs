@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using LogopedicBackend;
 using LogopedicBackend.Data;
 using LogopedicBackend.Exceptions;
 using LogopedicBackend.Extensions;
@@ -47,8 +48,11 @@ builder.Services
     .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<LogopedicContext>();
 
-builder.Services.AddDbContext<LogopedicContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
+builder.Services.AddDbContext<LogopedicContext>(options => options
+    .UseNpgsql(builder.Configuration.GetConnectionString("Default"))
+    .UseSeeding(DatabaseSeeder.Seed)
+    .UseAsyncSeeding(DatabaseSeeder.SeedAsync));
+
 
 builder.Services.AddAntiforgery(options =>
 {
