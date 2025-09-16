@@ -348,9 +348,9 @@ public class AppointmentServiceTests
             Therapist = therapist
         };
 
-        List<Appointment> appointments = new()
-        {
-            new Appointment
+        List<Appointment> appointments =
+        [
+            new()
             {
                 Id = 10,
                 StartTime = now.AddDays(-3),
@@ -362,7 +362,8 @@ public class AppointmentServiceTests
                 PatientId = patient1.Id,
                 Patient = patient1
             },
-            new Appointment
+
+            new()
             {
                 Id = 11,
                 StartTime = now.AddDays(-2),
@@ -374,7 +375,8 @@ public class AppointmentServiceTests
                 PatientId = patient2.Id,
                 Patient = patient2
             },
-            new Appointment
+
+            new()
             {
                 Id = 12,
                 StartTime = now.AddDays(-1),
@@ -386,7 +388,8 @@ public class AppointmentServiceTests
                 PatientId = patient1.Id,
                 Patient = patient1
             },
-            new Appointment
+
+            new()
             {
                 Id = 13,
                 StartTime = now,
@@ -398,7 +401,8 @@ public class AppointmentServiceTests
                 PatientId = patient3.Id,
                 Patient = patient3
             },
-            new Appointment
+
+            new()
             {
                 Id = 14,
                 StartTime = now.AddDays(1),
@@ -410,7 +414,7 @@ public class AppointmentServiceTests
                 PatientId = patient2.Id,
                 Patient = patient2
             }
-        };
+        ];
 
         await using LogopedicContext ctx = CreateContextWith(appointments.ToArray());
 
@@ -457,21 +461,21 @@ public class AppointmentServiceTests
             .Items
             .Select(a => a.Id)
             .ToArray();
-        int[] expectedIds1 = Array.Empty<int>();
+        int[] expectedIds1 = [];
         Assert.Equal(expectedIds1, actualIds1);
 
         int[] actualIds2 = result2.AsT0
             .Items
             .Select(a => a.Id)
             .ToArray();
-        int[] expectedIds2 = new[] { 11, 12 };
+        int[] expectedIds2 = [11, 12];
         Assert.Equal(expectedIds2, actualIds2);
 
         int[] actualIds3 = result3.AsT0
             .Items
             .Select(a => a.Id)
             .ToArray();
-        int[] expectedIds3 = new[] { 12, 13 };
+        int[] expectedIds3 = [12, 13];
         Assert.Equal(expectedIds3, actualIds3);
     }
 
@@ -653,8 +657,8 @@ public class AppointmentServiceTests
         };
 
         // Appointments with overlapping StartTime and Duration to test tie-breaking
-        List<Appointment> appointments = new()
-        {
+        List<Appointment> appointments =
+        [
             new Appointment
             {
                 Id = 4,
@@ -667,6 +671,7 @@ public class AppointmentServiceTests
                 PatientId = patient.Id,
                 Patient = patient
             },
+
             new Appointment
             {
                 Id = 2,
@@ -679,6 +684,7 @@ public class AppointmentServiceTests
                 PatientId = patient.Id,
                 Patient = patient
             },
+
             new Appointment
             {
                 Id = 3,
@@ -691,6 +697,7 @@ public class AppointmentServiceTests
                 PatientId = patient.Id,
                 Patient = patient
             },
+
             new Appointment
             {
                 Id = 1,
@@ -703,6 +710,7 @@ public class AppointmentServiceTests
                 PatientId = patient.Id,
                 Patient = patient
             },
+
             new Appointment
             {
                 Id = 5,
@@ -715,7 +723,7 @@ public class AppointmentServiceTests
                 PatientId = patient.Id,
                 Patient = patient
             }
-        };
+        ];
 
         await using LogopedicContext ctx = new(new DbContextOptionsBuilder<LogopedicContext>().UseInMemoryDatabase(Guid
                 .NewGuid()
@@ -741,7 +749,7 @@ public class AppointmentServiceTests
         PagedResultDto<AppointmentDto>? paged = result.AsT0;
 
         // Expect ascending StartTime, tie-break by Id ascending
-        int[] expectedOrder = new[] { 1, 3, 5, 2, 4 };
+        int[] expectedOrder = [1, 3, 5, 2, 4];
         Assert.Equal(expectedOrder, paged.Items.Select(a => a.Id));
     }
 
@@ -772,9 +780,9 @@ public class AppointmentServiceTests
         };
 
         // Appointments with overlapping StartTime and Duration to test tie-breaking
-        List<Appointment> appointments = new()
-        {
-            new Appointment
+        List<Appointment> appointments =
+        [
+            new()
             {
                 Id = 4,
                 StartTime = now.AddHours(2),
@@ -786,7 +794,8 @@ public class AppointmentServiceTests
                 PatientId = patient.Id,
                 Patient = patient
             },
-            new Appointment
+
+            new()
             {
                 Id = 2,
                 StartTime = now.AddHours(2),
@@ -798,7 +807,8 @@ public class AppointmentServiceTests
                 PatientId = patient.Id,
                 Patient = patient
             },
-            new Appointment
+
+            new()
             {
                 Id = 3,
                 StartTime = now.AddHours(1),
@@ -810,7 +820,8 @@ public class AppointmentServiceTests
                 PatientId = patient.Id,
                 Patient = patient
             },
-            new Appointment
+
+            new()
             {
                 Id = 5,
                 StartTime = now.AddHours(1),
@@ -822,7 +833,8 @@ public class AppointmentServiceTests
                 PatientId = patient.Id,
                 Patient = patient
             },
-            new Appointment
+
+            new()
             {
                 Id = 1,
                 StartTime = now.AddHours(1),
@@ -834,7 +846,7 @@ public class AppointmentServiceTests
                 PatientId = patient.Id,
                 Patient = patient
             }
-        };
+        ];
 
         await using LogopedicContext ctx = new(new DbContextOptionsBuilder<LogopedicContext>().UseInMemoryDatabase(Guid
                 .NewGuid()
@@ -860,7 +872,7 @@ public class AppointmentServiceTests
         PagedResultDto<AppointmentDto>? paged = result.AsT0;
 
         // Expect descending Duration, tie-break by Id ascending
-        int[] expectedOrder = new[] { 3, 2, 1, 4, 5 };
+        int[] expectedOrder = [3, 2, 1, 4, 5];
         Assert.Equal(expectedOrder, paged.Items.Select(a => a.Id));
     }
 
@@ -1026,15 +1038,16 @@ public class AppointmentServiceTests
             .WithAppointment()
             .BuildAsync();
 
-        Appointment appointment = await context.Appointments.FirstAsync();
+        Appointment appointment = await context.Appointments
+            .Include(appointment => appointment.Patient)
+            .FirstAsync();
 
         ITherapistService? therapistService = Substitute.For<ITherapistService>();
         therapistService.GetCurrentTherapistIdOrThrowAsync(Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(appointment.TherapistId));
 
         IPatientService? patientService = Substitute.For<IPatientService>();
-        patientService.ExistsForTherapistAsync(appointment.PatientId)
-            .Returns(Task.FromResult(true));
+        patientService.GetByIdAsync(appointment.PatientId)!.Returns(Task.FromResult(appointment.Patient));
 
         AppointmentService appointmentService = new(context, therapistService, patientService);
 
@@ -1215,8 +1228,7 @@ public class AppointmentServiceTests
             .Returns(Task.FromResult(appointment.TherapistId));
 
         IPatientService? patientService = Substitute.For<IPatientService>();
-        patientService.ExistsForTherapistAsync(appointment.PatientId)
-            .Returns(Task.FromResult(true));
+        patientService.GetByIdAsync(appointment.PatientId)!.Returns(Task.FromResult(appointment.Patient));
 
         AppointmentService appointmentService = new(context, therapistService, patientService);
 
