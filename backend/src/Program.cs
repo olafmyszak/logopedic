@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using System.Threading.RateLimiting;
 using LogopedicBackend;
 using LogopedicBackend.Data;
 using LogopedicBackend.Exceptions;
@@ -48,11 +49,13 @@ builder.Services
     .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<LogopedicContext>();
 
-builder.Services.AddDbContext<LogopedicContext>(options => options
-    .UseNpgsql(builder.Configuration.GetConnectionString("Default"))
-    .UseSeeding(DatabaseSeeder.Seed)
-    .UseAsyncSeeding(DatabaseSeeder.SeedAsync));
-
+if (!builder.Environment.IsEnvironment("IntegrationTests"))
+{
+    builder.Services.AddDbContext<LogopedicContext>(options => options
+        .UseNpgsql(builder.Configuration.GetConnectionString("Default"))
+        .UseSeeding(DatabaseSeeder.Seed)
+        .UseAsyncSeeding(DatabaseSeeder.SeedAsync));
+}
 
 builder.Services.AddAntiforgery(options =>
 {
@@ -81,8 +84,36 @@ else
             options.Filters.Add<TrimModelStringsFilter>();
         })
         .AddJsonOptions(options => { options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()); });
-}
 
+    builder.Services.AddRateLimiter(options =>
+    {
+        options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
+            RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: httpContext.User.Identity?.Name ?? httpContext.Request.Headers.Host.ToString(),
+                factory: _ => new FixedWindowRateLimiterOptions
+                {
+                    AutoReplenishment = true, PermitLimit = 10, QueueLimit = 0, Window = TimeSpan.FromMinutes(1)
+                }));
+
+        options.OnRejected = async (httpContext, ct) =>
+        {
+            httpContext.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+            httpContext.HttpContext.Response.Headers.RetryAfter = "60";
+            // httpContext.HttpContext.Response.ContentType = "application/json";
+
+            var problemDetails = new ProblemDetails
+            {
+                Status = StatusCodes.Status429TooManyRequests,
+                Title = "Too many requests",
+                Detail = "You have exceeded the allowed 10 requests per minute limit. Try again later.",
+                Type = "https://httpstatuses.com/429",
+                Instance = httpContext.HttpContext.Request.Path
+            };
+
+            await httpContext.HttpContext.Response.WriteAsJsonAsync(problemDetails, ct);
+        };
+    });
+}
 
 builder.Services.AddCors(options =>
 {
@@ -95,6 +126,7 @@ builder.Services.AddCors(options =>
                 .AllowCredentials();
         });
 });
+
 
 builder.Services.AddScoped<AdminService>();
 
@@ -148,6 +180,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 
     app.ApplyMigrations();
+    app.UseRateLimiter();
 }
 else if (app.Environment.IsEnvironment("IntegrationTests"))
 {
@@ -167,6 +200,7 @@ app.UseCors("LocalDev");
 
 app.UseAuthentication();
 app.UseAuthorization();
+
 
 app.MapControllers();
 
