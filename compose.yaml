@@ -1,14 +1,14 @@
 services:
   backend:
     build:
-      context: ./backend
+      context: ./backend/src
     ports:
       - "5000:8080"
     depends_on:
       - postgres
     volumes:
-      - ./aspnet-keys:/keys
-    env_file: "backend.env"
+      - ./backend/aspnet-keys:/keys
+    env_file: "backend/backend.env"
     restart: unless-stopped
 
   postgres:

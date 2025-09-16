@@ -1,0 +1,32 @@
+﻿### Get all patients
+GET http://localhost:5000/api/patients
+
+### Get patient by id
+GET http://localhost:5000/api/Patients/3
+
+### Create a new patient
+POST http://localhost:5000/api/patients
+Content-Type: application/json
+Accept: application/json
+
+{
+    "fullName": "John Doe",
+    "dateOfBirth": "1990-05-12T00:00:00Z",
+    "contactInfo": "john.doe@example.com, +1-555-123-4567",
+    "notes": "First consultation scheduled next week.",
+    "therapistId": -1
+}
+
+### PATCH patient
+PATCH http://localhost:5000/api/patients/5
+Content-Type: application/json
+
+{
+    "FullName": "Updated Name",
+    "ContactInfo": "new.email@example.com",
+    "Notes": "Updated notes",
+    "TherapistId": 2
+}
+
+### DELETE patient
+DELETE http://localhost:5000/api/patients/2
