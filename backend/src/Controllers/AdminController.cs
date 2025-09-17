@@ -10,6 +10,7 @@ namespace LogopedicBackend.Controllers;
 [Authorize(Roles = AppRoles.Admin)]
 [ProducesResponseType(StatusCodes.Status401Unauthorized)]
 [ProducesResponseType(StatusCodes.Status403Forbidden)]
+[ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status429TooManyRequests)]
 [Produces("application/json")]
 public class AdminController(AdminService adminService) : ControllerBase
 {

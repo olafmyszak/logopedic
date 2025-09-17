@@ -11,6 +11,7 @@ namespace LogopedicBackend.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Produces("application/json")]
+[ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status429TooManyRequests)]
 public class AccountController(
     LogopedicContext context,
     UserManager<User> userManager,
