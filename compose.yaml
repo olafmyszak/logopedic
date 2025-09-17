@@ -3,11 +3,14 @@ services:
     build:
       context: ./backend/src
     ports:
-      - "5000:8080"
+      - "5000:5000"
     depends_on:
       - postgres
+    environment:
+      - PFX_PATH=/var/ssl/private/localhost.pfx
     volumes:
       - ./backend/aspnet-keys:/keys
+      - ./backend/localhost.pfx:/var/ssl/private/localhost.pfx:ro
     env_file: "backend/backend.env"
     restart: unless-stopped
 

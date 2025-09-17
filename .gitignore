@@ -87,3 +87,4 @@ aspnet-keys/
 *.tmp
 *.old
 TODO
+*.pfx

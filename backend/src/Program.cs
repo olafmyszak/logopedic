@@ -172,6 +172,16 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
+builder.WebHost.UseKestrel(options =>
+{
+    options.ListenAnyIP(5000,
+        listenOptions =>
+        {
+            listenOptions.UseHttps(Environment.GetEnvironmentVariable("PFX_PATH") ?? throw new InvalidOperationException("PFX file not found"),
+                Environment.GetEnvironmentVariable("PFX_PASS"));
+        });
+});
+
 WebApplication app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -200,7 +210,6 @@ app.UseCors("LocalDev");
 
 app.UseAuthentication();
 app.UseAuthorization();
-
 
 app.MapControllers();
 
