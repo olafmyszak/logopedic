@@ -8,6 +8,7 @@ public record TokenResponse(string Token);
 [ApiController]
 [Route("api/[controller]")]
 [Produces("application/json")]
+[ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status429TooManyRequests)]
 public class AntiforgeryController(IAntiforgery antiforgery) : ControllerBase
 {
     [HttpGet("token")]

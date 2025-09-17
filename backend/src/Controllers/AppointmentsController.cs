@@ -16,6 +16,7 @@ namespace LogopedicBackend.Controllers;
 [ProducesResponseType(StatusCodes.Status400BadRequest)]
 [ProducesResponseType(StatusCodes.Status401Unauthorized)]
 [ProducesResponseType(StatusCodes.Status403Forbidden)]
+[ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status429TooManyRequests)]
 public class AppointmentsController(IAppointmentService appointmentService) : ControllerBase
 {
     [HttpGet]

@@ -92,7 +92,6 @@ public class PatientService(LogopedicContext context, ITherapistService therapis
         if (!string.IsNullOrWhiteSpace(query.Search))
         {
             baseQuery = baseQuery.Where(p => EF.Functions.ILike(p.SearchText, $"%{query.Search}%"))
-                .Where(p => EF.Functions.TrigramsSimilarity(p.SearchText, query.Search) > 0.2)
                 .OrderByDescending(p => EF.Functions.TrigramsSimilarity(p.SearchText, query.Search))
                 .ThenBy(p => p.Id);
         }

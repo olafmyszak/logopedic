@@ -11,18 +11,19 @@ public static class DatabaseSeeder
     public static void Seed(DbContext context, bool _)
     {
         if (context.Set<Therapist>()
-            .Any())
+            .Any(t => t.FullName != "admin"))
         {
             return;
         }
+
+        Console.WriteLine("Seeding...");
 
         const string locale = "pl";
 
         const int therapistCount = 100;
         Faker faker = new(locale);
 
-        Faker<User> userFaker = new Faker<User>().RuleFor(u => u.UserName, f => f.Internet.UserName())
-            .RuleFor(u => u.Email, f => f.Internet.Email());
+        Faker<User> userFaker = new Faker<User>().RuleFor(u => u.Email, f => f.Internet.Email());
 
         Faker<Therapist> therapistFaker = new Faker<Therapist>().RuleFor(t => t.FullName, f => f.Person.FullName);
 
@@ -37,14 +38,15 @@ public static class DatabaseSeeder
 
             user.Id = Guid.NewGuid()
                 .ToString(); // ensure unique string id if your User.Id is string
-            user.NormalizedUserName = user.UserName!.ToUpperInvariant();
+            user.UserName = user.Email;
+            user.NormalizedUserName = user.Email!.ToUpperInvariant();
             user.NormalizedEmail = user.Email!.ToUpperInvariant();
             user.EmailConfirmed = true; // dev convenience
             user.SecurityStamp = Guid.NewGuid()
                 .ToString();
             user.ConcurrencyStamp = Guid.NewGuid()
                 .ToString();
-            user.PasswordHash = passwordHasher.HashPassword(user, faker.Internet.Password());
+            user.PasswordHash = passwordHasher.HashPassword(user, "P@ssword2");
 
             bool userExists = context.Set<User>()
                 .Any(u => u.NormalizedEmail == user.NormalizedEmail);
@@ -88,7 +90,7 @@ public static class DatabaseSeeder
         foreach (Therapist therapist in therapists)
         {
             DateTimeOffset nextAvailable = DateTimeOffset.UtcNow;
-            List<Appointment> toInsert = new();
+            List<Appointment> toInsert = [];
 
             for (int i = 0; i < patientsPerTherapist; ++i)
             {
@@ -132,7 +134,7 @@ public static class DatabaseSeeder
     public static async Task SeedAsync(DbContext context, bool _, CancellationToken ct)
     {
         if (await context.Set<Therapist>()
-                .AnyAsync(ct))
+                .AnyAsync(t => t.FullName != "admin", ct))
         {
             return;
         }
@@ -142,8 +144,7 @@ public static class DatabaseSeeder
         const int therapistCount = 100;
         Faker faker = new(locale);
 
-        Faker<User> userFaker = new Faker<User>().RuleFor(u => u.UserName, f => f.Internet.UserName())
-            .RuleFor(u => u.Email, f => f.Internet.Email());
+        Faker<User> userFaker = new Faker<User>().RuleFor(u => u.Email, f => f.Internet.Email());
 
         Faker<Therapist> therapistFaker = new Faker<Therapist>().RuleFor(t => t.FullName, f => f.Person.FullName);
 
@@ -158,14 +159,15 @@ public static class DatabaseSeeder
 
             user.Id = Guid.NewGuid()
                 .ToString(); // ensure unique string id if your User.Id is string
-            user.NormalizedUserName = user.UserName!.ToUpperInvariant();
+            user.UserName = user.Email;
+            user.NormalizedUserName = user.Email!.ToUpperInvariant();
             user.NormalizedEmail = user.Email!.ToUpperInvariant();
             user.EmailConfirmed = true; // dev convenience
             user.SecurityStamp = Guid.NewGuid()
                 .ToString();
             user.ConcurrencyStamp = Guid.NewGuid()
                 .ToString();
-            user.PasswordHash = passwordHasher.HashPassword(user, faker.Internet.Password());
+            user.PasswordHash = passwordHasher.HashPassword(user, "P@ssword2");
 
             bool userExists = await context.Set<User>()
                 .AnyAsync(u => u.NormalizedEmail == user.NormalizedEmail, ct);
