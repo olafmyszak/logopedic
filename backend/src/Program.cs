@@ -62,6 +62,8 @@ builder.Services.AddAntiforgery(options =>
     options.Cookie.Name = "XSRF-TOKEN";
     options.Cookie.HttpOnly = false;
     options.HeaderName = "X-XSRF-TOKEN";
+    options.Cookie.SameSite = SameSiteMode.None;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
 });
 
 if (builder.Environment.IsEnvironment("IntegrationTests"))
@@ -87,12 +89,22 @@ else
 
     builder.Services.AddRateLimiter(options =>
     {
+        int permitLimit = 10;
+
+        if (builder.Environment.IsDevelopment())
+        {
+            permitLimit = 999;
+        }
+
         options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
             RateLimitPartition.GetFixedWindowLimiter(
                 partitionKey: httpContext.User.Identity?.Name ?? httpContext.Request.Headers.Host.ToString(),
                 factory: _ => new FixedWindowRateLimiterOptions
                 {
-                    AutoReplenishment = true, PermitLimit = 10, QueueLimit = 0, Window = TimeSpan.FromMinutes(1)
+                    AutoReplenishment = true,
+                    PermitLimit = permitLimit,
+                    QueueLimit = 0,
+                    Window = TimeSpan.FromMinutes(1)
                 }));
 
         options.OnRejected = async (httpContext, ct) =>
@@ -120,7 +132,7 @@ builder.Services.AddCors(options =>
     options.AddPolicy("LocalDev",
         policy =>
         {
-            policy.WithOrigins("http://localhost:4200")
+            policy.WithOrigins("https://localhost:4200")
                 .AllowAnyHeader()
                 .AllowAnyMethod()
                 .AllowCredentials();
@@ -177,7 +189,9 @@ builder.WebHost.UseKestrel(options =>
     options.ListenAnyIP(5000,
         listenOptions =>
         {
-            listenOptions.UseHttps(Environment.GetEnvironmentVariable("PFX_PATH") ?? throw new InvalidOperationException("PFX file not found"),
+            listenOptions.UseHttps(
+                Environment.GetEnvironmentVariable("PFX_PATH") ??
+                throw new InvalidOperationException("PFX file not found"),
                 Environment.GetEnvironmentVariable("PFX_PASS"));
         });
 });
@@ -203,8 +217,6 @@ await app.SeedAdminAsync();
 app.UseExceptionHandler();
 
 app.UseHttpsRedirection();
-
-app.UseAntiforgery();
 
 app.UseCors("LocalDev");
 

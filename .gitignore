@@ -88,3 +88,4 @@ aspnet-keys/
 *.old
 TODO
 *.pfx
+ssl/
