@@ -2,6 +2,8 @@
 using LogopedicBackend.Data;
 using LogopedicBackend.Dtos;
 using LogopedicBackend.Models;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using SignInResult = Microsoft.AspNetCore.Identity.SignInResult;
@@ -68,6 +70,15 @@ public class AccountController(
     {
         await signInManager.SignOutAsync();
 
+        return Ok();
+    }
+
+    [Authorize]
+    [HttpGet("isLoggedIn")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public IActionResult IsLoggedIn()
+    {
         return Ok();
     }
 }

@@ -2,7 +2,7 @@ import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { LoginDto } from '../models/loginDto';
 import { environment } from '../../../environments/environment';
-import { tap } from 'rxjs';
+import { catchError, map, of, tap } from 'rxjs';
 
 @Injectable({
     providedIn: 'root'
@@ -10,11 +10,11 @@ import { tap } from 'rxjs';
 export class AuthService {
     private http = inject(HttpClient);
 
+    private token: string | null = null;
+
     login(loginDto: LoginDto) {
         return this.http.post(`${environment.apiBaseUrl}/account/login`, loginDto, {
-            withCredentials: true,
-            // headers:
-            //     {'X-XSRF-TOKEN': this.token!}
+            withCredentials: true
         });
     }
 
@@ -24,7 +24,13 @@ export class AuthService {
         });
     }
 
-    private token: string | null = null;
+    isLoggedIn() {
+        return this.http.get<boolean>(`${environment.apiBaseUrl}/account/isLoggedIn`, {withCredentials: true})
+            .pipe(
+                map(() => true),
+                catchError(() => of(false))
+            );
+    }
 
     antiforgeryToken() {
         return this.http.get<{ token: string }>(`${environment.apiBaseUrl}/antiforgery/token`, {withCredentials: true})

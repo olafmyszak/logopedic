@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AuthService } from '../../../../core/services/auth.service';
 import { Router } from '@angular/router';
@@ -19,11 +19,8 @@ export class LoginComponent {
     private auth = inject(AuthService);
     private router = inject(Router);
 
-    private _serverError = signal<string | null>(null);
-    serverError = computed(() => this._serverError());
-
-    private _isLoading = signal(false);
-    isLoading = computed(() => this._isLoading());
+    serverError = signal<string | null>(null);
+    isLoading = signal(false);
 
     form = this.fb.group({
         email: ['', [Validators.required, Validators.email]],
@@ -64,14 +61,14 @@ export class LoginComponent {
     }
 
     onSubmit() {
-        this._serverError.set(null);
+        this.serverError.set(null);
 
         if (this.form.invalid) {
             this.form.markAllAsTouched();
             return;
         }
 
-        this._isLoading.set(true);
+        this.isLoading.set(true);
 
         const loginDto: LoginDto = {
             email: this.form.value.email!,
@@ -80,12 +77,12 @@ export class LoginComponent {
         };
 
         this.auth.login(loginDto)
-            .pipe(finalize(() => this._isLoading.set(false)))
+            .pipe(finalize(() => this.isLoading.set(false)))
             .subscribe({
-                next: () => this.router.navigateByUrl('/'),
+                next: () => this.router.navigateByUrl('/').then(() => window.location.reload()),
                 error: (err) => {
                     const msg = err?.error?.message ?? err?.message ?? 'Unable to sign in';
-                    this._serverError.set(msg);
+                    this.serverError.set(msg);
                 }
             });
     }
