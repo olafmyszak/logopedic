@@ -1,7 +1,9 @@
 services:
-  backend:
+  backend-release:
     build:
       context: ./backend/src
+      args:
+        - BUILD_CONFIGURATION=Release
     ports:
       - "5000:5000"
     depends_on:
@@ -13,6 +15,25 @@ services:
       - ./backend/localhost.pfx:/var/ssl/private/localhost.pfx:ro
     env_file: "backend/backend.env"
     restart: unless-stopped
+    profiles: ["release"]
+
+  backend-debug:
+    build:
+      context: ./backend/src
+      args:
+        - BUILD_CONFIGURATION=Debug
+    ports:
+      - "5000:5000"
+    depends_on:
+      - postgres
+    environment:
+      - PFX_PATH=/var/ssl/private/localhost.pfx
+    volumes:
+      - ./backend/aspnet-keys:/keys
+      - ./backend/localhost.pfx:/var/ssl/private/localhost.pfx:ro
+    env_file: "backend/backend.env"
+    restart: unless-stopped
+    profiles: ["debug"]
 
   postgres:
     image: postgres:17
