@@ -10,67 +10,73 @@ public static class DatabaseSeeder
 {
     public static void Seed(DbContext context, bool _)
     {
-        if (context.Set<Therapist>()
-            .Any(t => t.FullName != "admin"))
+        if (context.Set<Appointment>()
+            .Any())
         {
             return;
         }
 
+        bool seedTherapists = !context.Set<Therapist>()
+            .Any(t => t.FullName != "admin");
+
         Console.WriteLine("Seeding...");
 
         const string locale = "pl";
-
-        const int therapistCount = 100;
         Faker faker = new(locale);
 
-        Faker<User> userFaker = new Faker<User>().RuleFor(u => u.Email, f => f.Internet.Email());
-
-        Faker<Therapist> therapistFaker = new Faker<Therapist>().RuleFor(t => t.FullName, f => f.Person.FullName);
-
-        PasswordHasher<User> passwordHasher = new();
-
-        IdentityRole role = context.Set<IdentityRole>()
-            .Single(r => r.NormalizedName == "THERAPIST");
-
-        for (int i = 0; i < therapistCount; ++i)
+        if (seedTherapists)
         {
-            User user = userFaker.Generate();
+            const int therapistCount = 100;
 
-            user.Id = Guid.NewGuid()
-                .ToString(); // ensure unique string id if your User.Id is string
-            user.UserName = user.Email;
-            user.NormalizedUserName = user.Email!.ToUpperInvariant();
-            user.NormalizedEmail = user.Email!.ToUpperInvariant();
-            user.EmailConfirmed = true; // dev convenience
-            user.SecurityStamp = Guid.NewGuid()
-                .ToString();
-            user.ConcurrencyStamp = Guid.NewGuid()
-                .ToString();
-            user.PasswordHash = passwordHasher.HashPassword(user, "P@ssword2");
+            Faker<User> userFaker = new Faker<User>().RuleFor(u => u.Email, f => f.Internet.Email());
 
-            bool userExists = context.Set<User>()
-                .Any(u => u.NormalizedEmail == user.NormalizedEmail);
+            Faker<Therapist> therapistFaker = new Faker<Therapist>().RuleFor(t => t.FullName, f => f.Person.FullName);
 
-            if (!userExists)
+            PasswordHasher<User> passwordHasher = new();
+
+            IdentityRole role = context.Set<IdentityRole>()
+                .Single(r => r.NormalizedName == "THERAPIST");
+
+            for (int i = 0; i < therapistCount; ++i)
             {
-                context.Set<User>()
-                    .Add(user);
+                User user = userFaker.Generate();
+
+                user.Id = Guid.NewGuid()
+                    .ToString(); // ensure unique string id if your User.Id is string
+                user.UserName = user.Email;
+                user.NormalizedUserName = user.Email!.ToUpperInvariant();
+                user.NormalizedEmail = user.Email!.ToUpperInvariant();
+                user.EmailConfirmed = true; // dev convenience
+                user.SecurityStamp = Guid.NewGuid()
+                    .ToString();
+                user.ConcurrencyStamp = Guid.NewGuid()
+                    .ToString();
+                user.PasswordHash = passwordHasher.HashPassword(user, "P@ssword2");
+
+                bool userExists = context.Set<User>()
+                    .Any(u => u.NormalizedEmail == user.NormalizedEmail);
+
+                if (!userExists)
+                {
+                    context.Set<User>()
+                        .Add(user);
+                }
+
+                IdentityUserRole<string> userRole = new() { RoleId = role.Id, UserId = user.Id };
+                context.Set<IdentityUserRole<string>>()
+                    .Add(userRole);
+
+
+                Therapist therapist = therapistFaker.Generate();
+                therapist.UserId = user.Id;
+                therapist.User = user;
+
+                context.Set<Therapist>()
+                    .Add(therapist);
             }
 
-            IdentityUserRole<string> userRole = new() { RoleId = role.Id, UserId = user.Id };
-            context.Set<IdentityUserRole<string>>()
-                .Add(userRole);
-
-
-            Therapist therapist = therapistFaker.Generate();
-            therapist.UserId = user.Id;
-            therapist.User = user;
-
-            context.Set<Therapist>()
-                .Add(therapist);
+            context.SaveChanges();
         }
-
-        context.SaveChanges();
 
         Faker<Patient> patientFaker = new Faker<Patient>(locale).RuleFor(p => p.FullName, f => f.Name.FullName())
             .RuleFor(p => p.DateOfBirth,
@@ -133,65 +139,71 @@ public static class DatabaseSeeder
 
     public static async Task SeedAsync(DbContext context, bool _, CancellationToken ct)
     {
-        if (await context.Set<Therapist>()
-                .AnyAsync(t => t.FullName != "admin", ct))
+        if (await context.Set<Appointment>()
+                .AnyAsync())
         {
             return;
         }
+
+        bool seedTherapists = !await context.Set<Therapist>()
+            .AnyAsync(t => t.FullName != "admin", cancellationToken: ct);
 
         const string locale = "pl";
 
         const int therapistCount = 100;
         Faker faker = new(locale);
 
-        Faker<User> userFaker = new Faker<User>().RuleFor(u => u.Email, f => f.Internet.Email());
-
-        Faker<Therapist> therapistFaker = new Faker<Therapist>().RuleFor(t => t.FullName, f => f.Person.FullName);
-
-        PasswordHasher<User> passwordHasher = new();
-
-        IdentityRole role = await context.Set<IdentityRole>()
-            .SingleAsync(r => r.NormalizedName == "THERAPIST", ct);
-
-        for (int i = 0; i < therapistCount; ++i)
+        if (seedTherapists)
         {
-            User user = userFaker.Generate();
+            Faker<User> userFaker = new Faker<User>().RuleFor(u => u.Email, f => f.Internet.Email());
 
-            user.Id = Guid.NewGuid()
-                .ToString(); // ensure unique string id if your User.Id is string
-            user.UserName = user.Email;
-            user.NormalizedUserName = user.Email!.ToUpperInvariant();
-            user.NormalizedEmail = user.Email!.ToUpperInvariant();
-            user.EmailConfirmed = true; // dev convenience
-            user.SecurityStamp = Guid.NewGuid()
-                .ToString();
-            user.ConcurrencyStamp = Guid.NewGuid()
-                .ToString();
-            user.PasswordHash = passwordHasher.HashPassword(user, "P@ssword2");
+            Faker<Therapist> therapistFaker = new Faker<Therapist>().RuleFor(t => t.FullName, f => f.Person.FullName);
 
-            bool userExists = await context.Set<User>()
-                .AnyAsync(u => u.NormalizedEmail == user.NormalizedEmail, ct);
+            PasswordHasher<User> passwordHasher = new();
 
-            if (!userExists)
+            IdentityRole role = await context.Set<IdentityRole>()
+                .SingleAsync(r => r.NormalizedName == "THERAPIST", ct);
+
+            for (int i = 0; i < therapistCount; ++i)
             {
-                context.Set<User>()
-                    .Add(user);
+                User user = userFaker.Generate();
+
+                user.Id = Guid.NewGuid()
+                    .ToString(); // ensure unique string id if your User.Id is string
+                user.UserName = user.Email;
+                user.NormalizedUserName = user.Email!.ToUpperInvariant();
+                user.NormalizedEmail = user.Email!.ToUpperInvariant();
+                user.EmailConfirmed = true; // dev convenience
+                user.SecurityStamp = Guid.NewGuid()
+                    .ToString();
+                user.ConcurrencyStamp = Guid.NewGuid()
+                    .ToString();
+                user.PasswordHash = passwordHasher.HashPassword(user, "P@ssword2");
+
+                bool userExists = await context.Set<User>()
+                    .AnyAsync(u => u.NormalizedEmail == user.NormalizedEmail, ct);
+
+                if (!userExists)
+                {
+                    context.Set<User>()
+                        .Add(user);
+                }
+
+                IdentityUserRole<string> userRole = new() { RoleId = role.Id, UserId = user.Id };
+                context.Set<IdentityUserRole<string>>()
+                    .Add(userRole);
+
+
+                Therapist therapist = therapistFaker.Generate();
+                therapist.UserId = user.Id;
+                therapist.User = user;
+
+                context.Set<Therapist>()
+                    .Add(therapist);
             }
 
-            IdentityUserRole<string> userRole = new() { RoleId = role.Id, UserId = user.Id };
-            context.Set<IdentityUserRole<string>>()
-                .Add(userRole);
-
-
-            Therapist therapist = therapistFaker.Generate();
-            therapist.UserId = user.Id;
-            therapist.User = user;
-
-            context.Set<Therapist>()
-                .Add(therapist);
+            await context.SaveChangesAsync(ct);
         }
-
-        await context.SaveChangesAsync(ct);
 
         Faker<Patient> patientFaker = new Faker<Patient>(locale).RuleFor(p => p.FullName, f => f.Name.FullName())
             .RuleFor(p => p.DateOfBirth,

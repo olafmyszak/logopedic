@@ -1,0 +1,21 @@
+:host {
+    display: block;
+    padding: 12px;
+}
+
+.calendar-controls {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.loading {
+    margin-top: 8px;
+    color: red;
+}
+
+.error {
+    margin-top: 8px;
+    color: red;
+}

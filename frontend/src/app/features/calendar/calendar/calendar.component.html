@@ -1,0 +1,27 @@
+<div class="calendar-wrapper">
+    <header class="calendar-controls">
+        <button (click)="previousWeek()">◀</button>
+        <strong>{{ viewDate | calendarDate: 'weekViewTitle' : locale }}</strong>
+        <button (click)="nextWeek()">▶</button>
+    </header>
+
+    <mwl-calendar-week-view
+        [viewDate]="viewDate"
+        [events]="events()"
+        [refresh]="refresh"
+        [locale]="locale"
+        (eventTimesChanged)="onEventTimesChanged($event)"
+        (eventClicked)="onEventClicked($event.event)"
+        [hourSegments]="2"
+        [dayStartHour]="7"
+        [dayEndHour]="20"
+    />
+
+    @if (loading()) {
+        <div class="loading">Loading...</div>
+    }
+
+    @if (error()) {
+        <div class="error">{{ error() }}</div>
+    }
+</div>

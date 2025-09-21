@@ -16,7 +16,5 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
         });
     }
 
-    console.log(token);
-
     return next(cloned);
 };
