@@ -17,7 +17,7 @@ export class CalendarIntegrationService {
     readonly error = signal<string | null>(null);
 
     readonly refresh = new Subject<void>();
-    readonly locale = signal("us");
+    readonly locale = signal('us');
 
     loadRange(from: Date, to: Date) {
         this.loading.set(true);
@@ -27,7 +27,7 @@ export class CalendarIntegrationService {
             from: from,
             to: to,
             pageNumber: 1,
-            pageSize: 20
+            pageSize: AppointmentQueryParams.maxPageSize
         };
 
         this.appointmentService.query(params).pipe(

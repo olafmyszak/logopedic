@@ -20,3 +20,7 @@ export interface AppointmentQueryParams {
     status?: AppointmentStatus[];
     type?: AppointmentType[];
 }
+
+export namespace AppointmentQueryParams {
+    export const maxPageSize = 200;
+}

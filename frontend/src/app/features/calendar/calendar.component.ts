@@ -8,7 +8,7 @@ import {
     provideCalendar
 } from 'angular-calendar';
 import { adapterFactory } from 'angular-calendar/date-adapters/date-fns';
-import { CalendarIntegrationService } from '../../../core/services/calendar-integration.service';
+import { CalendarIntegrationService } from '../../core/services/calendar-integration.service';
 import { endOfWeek, startOfWeek } from 'date-fns';
 
 @Component({
@@ -37,7 +37,6 @@ export class CalendarComponent implements OnInit {
 
     ngOnInit() {
         this.loadCurrentWeek();
-        console.log(this.locale)
     }
 
     previousWeek() {
