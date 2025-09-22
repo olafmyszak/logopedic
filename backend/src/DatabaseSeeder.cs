@@ -8,6 +8,9 @@ namespace LogopedicBackend;
 
 public static class DatabaseSeeder
 {
+    private static readonly TimeZoneInfo s_warsawTimeZone =
+        TimeZoneInfo.FindSystemTimeZoneById("Central European Standard Time");
+
     public static void Seed(DbContext context, bool _)
     {
         if (context.Set<Appointment>()
@@ -66,7 +69,6 @@ public static class DatabaseSeeder
                 context.Set<IdentityUserRole<string>>()
                     .Add(userRole);
 
-
                 Therapist therapist = therapistFaker.Generate();
                 therapist.UserId = user.Id;
                 therapist.User = user;
@@ -90,12 +92,12 @@ public static class DatabaseSeeder
             .Where(t => t.FullName != "admin")
             .ToList();
 
-        const int patientsPerTherapist = 100;
+        const int patientsPerTherapist = 10;
         const int paddingMinutes = 5;
 
         foreach (Therapist therapist in therapists)
         {
-            DateTimeOffset nextAvailable = DateTimeOffset.UtcNow;
+            DateTimeOffset nextAvailable = AdjustToBusinessHours(DateTimeOffset.UtcNow);
             List<Appointment> toInsert = [];
 
             for (int i = 0; i < patientsPerTherapist; ++i)
@@ -106,7 +108,7 @@ public static class DatabaseSeeder
                 context.Set<Patient>()
                     .Add(patient);
 
-                const int appointmentsPerPatient = 100;
+                const int appointmentsPerPatient = 10;
                 for (int j = 0; j < appointmentsPerPatient; ++j)
                 {
                     int duration = faker.Random.ListItem(durations);
@@ -126,6 +128,9 @@ public static class DatabaseSeeder
                     toInsert.Add(appointment);
 
                     nextAvailable = nextAvailable.AddMinutes(duration + paddingMinutes);
+
+                    // Check if the next appointment would go past 5pm or need to move to next business day
+                    nextAvailable = EnsureWithinBusinessHours(nextAvailable, duration);
                 }
             }
 
@@ -140,13 +145,13 @@ public static class DatabaseSeeder
     public static async Task SeedAsync(DbContext context, bool _, CancellationToken ct)
     {
         if (await context.Set<Appointment>()
-                .AnyAsync())
+                .AnyAsync(ct))
         {
             return;
         }
 
         bool seedTherapists = !await context.Set<Therapist>()
-            .AnyAsync(t => t.FullName != "admin", cancellationToken: ct);
+            .AnyAsync(t => t.FullName != "admin", ct);
 
         const string locale = "pl";
 
@@ -217,13 +222,13 @@ public static class DatabaseSeeder
             .Where(t => t.FullName != "admin")
             .ToListAsync(ct);
 
-        const int patientsPerTherapist = 100;
+        const int patientsPerTherapist = 10;
         const int paddingMinutes = 5;
 
         foreach (Therapist therapist in therapists)
         {
-            DateTimeOffset nextAvailable = DateTimeOffset.UtcNow;
-            List<Appointment> toInsert = new();
+            DateTimeOffset nextAvailable = AdjustToBusinessHours(DateTimeOffset.UtcNow);
+            List<Appointment> toInsert = [];
 
             for (int i = 0; i < patientsPerTherapist; ++i)
             {
@@ -233,7 +238,7 @@ public static class DatabaseSeeder
                 context.Set<Patient>()
                     .Add(patient);
 
-                const int appointmentsPerPatient = 100;
+                const int appointmentsPerPatient = 10;
                 for (int j = 0; j < appointmentsPerPatient; ++j)
                 {
                     int duration = faker.Random.ListItem(durations);
@@ -253,6 +258,9 @@ public static class DatabaseSeeder
                     toInsert.Add(appointment);
 
                     nextAvailable = nextAvailable.AddMinutes(duration + paddingMinutes);
+
+                    // Check if the next appointment would go past 5pm or need to move to next business day
+                    nextAvailable = EnsureWithinBusinessHours(nextAvailable, duration);
                 }
             }
 
@@ -262,5 +270,48 @@ public static class DatabaseSeeder
         }
 
         await context.SaveChangesAsync(ct);
+    }
+
+    private static DateTimeOffset AdjustToBusinessHours(DateTimeOffset dateTimeOffset)
+    {
+        DateTime localTime = TimeZoneInfo.ConvertTimeFromUtc(dateTimeOffset.UtcDateTime, s_warsawTimeZone);
+        DateTime today9Am = localTime.Date.AddHours(9);
+
+        if (localTime.TimeOfDay < TimeSpan.FromHours(9))
+        {
+            // Before 9am today, start at 9am today
+            return new DateTimeOffset(TimeZoneInfo.ConvertTimeToUtc(today9Am, s_warsawTimeZone));
+        }
+
+        if (localTime.TimeOfDay >= TimeSpan.FromHours(17))
+        {
+            // After 5pm today, start at 9am tomorrow
+            return new DateTimeOffset(TimeZoneInfo.ConvertTimeToUtc(today9Am.AddDays(1), s_warsawTimeZone));
+        }
+
+        return dateTimeOffset;
+    }
+
+    private static DateTimeOffset EnsureWithinBusinessHours(DateTimeOffset nextTime, int durationInMinutes)
+    {
+        DateTime localTime = TimeZoneInfo.ConvertTimeFromUtc(nextTime.UtcDateTime, s_warsawTimeZone);
+        DateTime endTime = localTime.AddMinutes(durationInMinutes);
+
+        // If appointment would end after 5pm, move to 9am next day
+        if (endTime.TimeOfDay > TimeSpan.FromHours(17))
+        {
+            // Use Date.AddDays() to set hour to 0:00
+            DateTime nextDay = localTime.Date.AddDays(1);
+
+            while (nextDay.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)
+            {
+                nextDay = nextDay.AddDays(1);
+            }
+
+            DateTime next9Am = TimeZoneInfo.ConvertTimeToUtc(nextDay.AddHours(9), s_warsawTimeZone);
+            return new DateTimeOffset(next9Am);
+        }
+
+        return nextTime;
     }
 }
