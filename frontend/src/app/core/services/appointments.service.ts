@@ -4,6 +4,7 @@ import { AppointmentQueryParams } from '../models/AppointmentQueryParams';
 import { PagedResult } from '../models/PagedResult';
 import { AppointmentDto } from '../models/AppointmentDto';
 import { environment } from '../../../environments/environment';
+import { PatchAppointmentDto } from '../models/PatchAppointmentDto';
 
 @Injectable({
     providedIn: 'root'
@@ -16,6 +17,10 @@ export class AppointmentsService {
         return this.http.get<PagedResult<AppointmentDto>>(`${environment.apiBaseUrl}/appointments`, {
             params: httpParams
         });
+    }
+
+    patch(id: number, dto: PatchAppointmentDto) {
+        return this.http.patch<void>(`${environment.apiBaseUrl}/appointments/${id}`, dto);
     }
 
     private buildHttpParams(params: AppointmentQueryParams): HttpParams {

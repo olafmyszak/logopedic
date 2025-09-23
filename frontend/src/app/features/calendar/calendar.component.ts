@@ -30,10 +30,10 @@ export class CalendarComponent implements OnInit {
     readonly events = this.calendarIntegration.events;
     readonly loading = this.calendarIntegration.loading;
     readonly error = this.calendarIntegration.error;
-    readonly refresh = this.calendarIntegration.refresh;
 
     viewDate = new Date();
-    locale = "pl"
+    readonly locale = 'pl';
+    readonly weekStartsOn = 1; // Start on Monday
 
     ngOnInit() {
         this.loadCurrentWeek();
@@ -53,19 +53,12 @@ export class CalendarComponent implements OnInit {
         this.loadCurrentWeek();
     }
 
-
     onEventClicked(ev: CalendarEvent) {
-        console.log('clicked', ev.meta);
+        console.log('clicked', ev);
     }
 
-    onEventTimesChanged({
-                            event,
-                            newStart,
-                            newEnd
-                        }: CalendarEventTimesChangedEvent) {
-        this.events.update(list =>
-            list.map(e => (e === event ? {...e, start: newStart, end: newEnd} : e))
-        );
+    onEventTimesChanged(changedEvent: CalendarEventTimesChangedEvent) {
+        this.calendarIntegration.update(changedEvent);
     }
 
     private loadCurrentWeek() {
@@ -74,31 +67,3 @@ export class CalendarComponent implements OnInit {
         this.calendarIntegration.loadRange(start, end);
     }
 }
-
-
-// private appointmentsData = toSignal(
-//     toObservable(this.queryParams).pipe(
-//         tap(() => {
-//             this.loading.set(true);
-//             this.error.set(null);
-//         }),
-//         switchMap(params => {
-//             return this.appointmentsService.query(params).pipe(
-//                 catchError(err => {
-//                     console.error('Appointments query failed', err);
-//                     this.error.set('Failed to load appointments');
-//                     return of(emptyPagedResult<AppointmentDto>());
-//                 }),
-//                 finalize(() => {
-//                     this.loading.set(false);
-//                 })
-//             );
-//         })
-//     ),
-//     {
-//         initialValue: emptyPagedResult<AppointmentDto>()
-//     }
-// );
-//
-// appointments = computed(() => this.appointmentsData().items);
-

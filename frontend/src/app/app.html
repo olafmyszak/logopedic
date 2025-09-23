@@ -2,12 +2,13 @@
     <a routerLink="/">Home</a>
     |
     @if (isLoggedIn()) {
+        <a routerLink="/calendar">Calendar</a>
+        |
         <a (click)="logout()" style="cursor: pointer">Logout</a>
     } @else {
         <a routerLink="/login">Login</a>
     }
-    |
-    <a routerLink="/calendar">Calendar</a>
+
 
 </nav>
 

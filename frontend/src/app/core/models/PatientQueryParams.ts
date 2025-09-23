@@ -9,3 +9,7 @@ export interface PatientQueryParams {
     // Search by patient's name and contact info
     search?: string;
 }
+
+export namespace PatientQueryParams {
+    export const maxPageSize = 200;
+}
