@@ -1,21 +1,4 @@
 services:
-  frontend-debug:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      target: runner
-    ports:
-      - "80:8080" # HTTP -> redirect
-      - "443:8443" # HTTPS (host 443 -> container 8443)
-    volumes:
-      - ./frontend/ssl/localhost.pem:/etc/ssl/certs/fullchain.pem:ro
-      - ./frontend/ssl/localhost-key.pem:/etc/ssl/private/privkey.pem:ro
-      - ./frontend/nginx.conf:/etc/nginx/nginx.conf:ro
-    depends_on:
-      - backend-debug
-    restart: unless-stopped
-    profiles: [ "debug" ]
-
   frontend-release:
     build:
       context: ./frontend
@@ -32,6 +15,23 @@ services:
       - backend-release
     restart: unless-stopped
     profiles: [ "release" ]
+
+  frontend-debug:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: runner
+    ports:
+      - "80:8080" # HTTP -> redirect
+      - "443:8443" # HTTPS (host 443 -> container 8443)
+    volumes:
+      - ./frontend/ssl/localhost.pem:/etc/ssl/certs/fullchain.pem:ro
+      - ./frontend/ssl/localhost-key.pem:/etc/ssl/private/privkey.pem:ro
+      - ./frontend/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - backend-debug
+    restart: unless-stopped
+    profiles: [ "debug" ]
 
   backend-release:
     build:
@@ -74,6 +74,7 @@ services:
     env_file: "db.env"
     ports:
       - "5434:5432"
+    restart: unless-stopped
     volumes:
       - pgdata:/var/lib/postgresql/data
 

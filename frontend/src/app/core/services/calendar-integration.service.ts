@@ -1,7 +1,7 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { AppointmentsService } from './appointments.service';
 import { CalendarEvent, CalendarEventTimesChangedEvent } from 'angular-calendar';
-import { catchError, combineLatest, finalize, map, of, Subscription } from 'rxjs';
+import { catchError, combineLatest, finalize, map, of, Subject, Subscription } from 'rxjs';
 import { AppointmentQueryParams } from '../models/AppointmentQueryParams';
 import { AppointmentDto } from '../models/AppointmentDto';
 import { emptyPagedResult, PagedResult } from '../models/PagedResult';
@@ -21,6 +21,8 @@ export class CalendarIntegrationService {
     readonly events = signal<CalendarEvent[]>([]);
     readonly loading = signal(false);
     readonly error = signal<string | null>(null);
+    refresh = new Subject<void>();
+
 
     loadRange(from: Date, to: Date) {
         this.currentLoadSubscription?.unsubscribe();
@@ -81,7 +83,6 @@ export class CalendarIntegrationService {
             startTime: changedEvent.newStart
         };
 
-
         this.appointmentService.patch(id, dto).subscribe({
             next: () => {
                 this.events.update(events =>
@@ -92,6 +93,7 @@ export class CalendarIntegrationService {
                     )
                 );
                 this.loading.set(false);
+                this.refresh.next();
             },
             error: err => {
                 this.error.set('Failed to update appointment');
@@ -121,6 +123,7 @@ export class CalendarIntegrationService {
                 beforeStart: true,
                 afterEnd: true
             },
+            cssClass: dto.durationInMinutes <= 30 ? 'short-event' : '',
             meta: dto
         };
     }

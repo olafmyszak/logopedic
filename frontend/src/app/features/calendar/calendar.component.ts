@@ -12,8 +12,8 @@ import {
 } from 'angular-calendar';
 import { adapterFactory } from 'angular-calendar/date-adapters/date-fns';
 import { CalendarIntegrationService } from '../../core/services/calendar-integration.service';
-import { endOfWeek, startOfWeek } from 'date-fns';
-import { registerLocaleData } from '@angular/common';
+import { endOfWeek, isSameDay, startOfWeek } from 'date-fns';
+import { DatePipe, registerLocaleData } from '@angular/common';
 import localePl from '@angular/common/locales/pl';
 import { CustomDateFormatter } from './custom-date-formatter.provider';
 import { CustomEventTitleFormatter } from './custom-event-title-formatter.provider';
@@ -22,22 +22,22 @@ registerLocaleData(localePl);
 
 @Component({
     selector: 'app-calendar',
-    imports: [CalendarWeekViewComponent, CalendarDatePipe],
+    imports: [CalendarWeekViewComponent, CalendarDatePipe, DatePipe],
     providers: [
         provideCalendar({
-                provide: DateAdapter,
-                useFactory: adapterFactory
+            provide: DateAdapter,
+            useFactory: adapterFactory
+        },
+        {
+            dateFormatter: {
+                provide: CalendarDateFormatter,
+                useClass: CustomDateFormatter
             },
-            {
-                dateFormatter: {
-                    provide: CalendarDateFormatter,
-                    useClass: CustomDateFormatter
-                },
-                eventTitleFormatter: {
-                    provide: CalendarEventTitleFormatter,
-                    useClass: CustomEventTitleFormatter
-                }
-            })
+            // eventTitleFormatter: {
+            //     provide: CalendarEventTitleFormatter,
+            //     useClass: CustomEventTitleFormatter
+            // }
+        })
     ],
     templateUrl: './calendar.component.html',
     styleUrl: './calendar.component.scss',
@@ -49,6 +49,7 @@ export class CalendarComponent implements OnInit {
     readonly events = this.calendarIntegration.events;
     readonly loading = this.calendarIntegration.loading;
     readonly error = this.calendarIntegration.error;
+    readonly refresh = this.calendarIntegration.refresh;
 
     viewDate = new Date();
     readonly locale: string = 'pl';
@@ -77,8 +78,40 @@ export class CalendarComponent implements OnInit {
     }
 
     onEventTimesChanged(changedEvent: CalendarEventTimesChangedEvent) {
-        this.calendarIntegration.update(changedEvent);
+        if (this.validateEventTimesChanged(changedEvent)) {
+            this.calendarIntegration.update(changedEvent);
+        }
     }
+
+    validateEventTimesChanged = (
+        {event, newStart, newEnd}: CalendarEventTimesChangedEvent,
+        addCssClass = true
+    ) => {
+        delete event.cssClass;
+
+        const sameDay = isSameDay(newStart, newEnd!);
+
+        if (!sameDay) {
+            return true;
+        }
+
+        const overlappingEvent = this.events().find((otherEvent) => {
+            return (
+                otherEvent !== event &&
+                (otherEvent.start < newEnd! && otherEvent.end! > newStart)
+            );
+        });
+
+        if (overlappingEvent) {
+            if (addCssClass) {
+                event.cssClass = 'invalid-position';
+            }
+
+            return false;
+        }
+
+        return true;
+    };
 
     private loadCurrentWeek() {
         const start = startOfWeek(this.viewDate, {weekStartsOn: 1});

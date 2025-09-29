@@ -7,6 +7,7 @@
     display: flex;
     gap: 12px;
     align-items: center;
+    justify-content: center;
     margin-bottom: 8px;
 }
 
@@ -19,3 +20,20 @@
     margin-top: 8px;
     color: red;
 }
+
+.cal-event-custom {
+    border-radius: 0;
+}
+
+.cal-event-custom .patient-name {
+    font-size: large;
+    font-weight: 550;
+}
+
+.cal-event-custom .appointment-time {
+    font-size: medium;
+    line-height: 1;
+    opacity: .9;
+}
+
+

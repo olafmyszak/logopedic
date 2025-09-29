@@ -14,7 +14,6 @@ import { toSignal } from '@angular/core/rxjs-interop';
 })
 export class App implements OnInit {
     private auth = inject(AuthService);
-    private router = inject(Router);
 
     ngOnInit(): void {
         this.auth.antiforgeryToken().subscribe();

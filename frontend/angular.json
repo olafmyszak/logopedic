@@ -31,7 +31,6 @@
                       "src/styles.scss"
                     ],
                     "polyfills": [
-                      "@angular/localize/init"
                     ]
                   },
                   "configurations": {
@@ -95,7 +94,7 @@
                       "src/styles.scss"
                     ],
                     "polyfills": [
-                      "@angular/localize/init"
+
                     ]
                   }
                 }
