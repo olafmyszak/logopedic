@@ -196,7 +196,7 @@ public class AppointmentService(
             .AsNoTracking()
             .Where(a => a.Id != id && // Exclude currently updated appointment or it will always conflict
                         a.TherapistId == therapistId && a.StartTime < endTime &&
-                        a.StartTime.AddMinutes(newDurationInMinutes) > newStartTime)
+                        a.StartTime.AddMinutes(a.DurationInMinutes) > newStartTime)
             .Select(a => new AppointmentDto
             {
                 Id = a.Id,

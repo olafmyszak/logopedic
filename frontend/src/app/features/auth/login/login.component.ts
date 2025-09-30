@@ -1,8 +1,8 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { AuthService } from '../../../../core/services/auth.service';
+import { AuthService } from '../../../core/services/auth.service';
 import { Router } from '@angular/router';
-import { LoginDto } from '../../../../core/models/loginDto';
+import { LoginDto } from '../../../core/models/LoginDto';
 import { finalize } from 'rxjs';
 
 @Component({
@@ -15,18 +15,16 @@ import { finalize } from 'rxjs';
     changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class LoginComponent {
-    private fb = inject(FormBuilder);
-    private auth = inject(AuthService);
-    private router = inject(Router);
-
     serverError = signal<string | null>(null);
     isLoading = signal(false);
-
+    private fb = inject(FormBuilder);
     form = this.fb.group({
         email: ['', [Validators.required, Validators.email]],
         password: ['', Validators.required],
         rememberMe: [true]
     });
+    private auth = inject(AuthService);
+    private router = inject(Router);
 
     emailError(): string | null {
         const ctl = this.form.get('email');

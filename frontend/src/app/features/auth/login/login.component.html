@@ -1,31 +1,30 @@
 <main class="login-root" role="main">
-    <form [formGroup]="form" (submit)="onSubmit()" novalidate class="login-card">
+    <form (submit)="onSubmit()" [formGroup]="form" class="login-card" novalidate>
         <h1 class="title">Sign in</h1>
 
-        <label for="email" class="label">Email</label>
-        <input id="email" type="email" formControlName="email" autocomplete="username"/>
+        <label class="label" for="email">Email</label>
+        <input autocomplete="username" formControlName="email" id="email" type="email"/>
         @if (emailError()) {
             <div class="error">{{ emailError() }}</div>
         }
 
-        <label for="password" class="label">Password</label>
-        <input id="password" type="password" formControlName="password" autocomplete="current-password"/>
+        <label class="label" for="password">Password</label>
+        <input autocomplete="current-password" formControlName="password" id="password" type="password"/>
         @if (passwordError()) {
             <div class="error">{{ passwordError() }}</div>
         }
 
         <label class="inline">
             Remember me
-            <input type="checkbox" formControlName="rememberMe"/>
+            <input formControlName="rememberMe" type="checkbox"/>
         </label>
 
-        <button type="submit" [disabled]="isLoading() || form.invalid">
+        <button [disabled]="isLoading() || form.invalid" type="submit">
             {{ isLoading() ? 'Signing in...' : 'Sign in' }}
         </button>
 
         @if (serverError()) {
             <div class="server-error">{{ serverError() }}</div>
-
         }
     </form>
 </main>

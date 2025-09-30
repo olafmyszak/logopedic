@@ -1,6 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { LoginDto } from '../models/loginDto';
+import { LoginDto } from '../models/LoginDto';
 import { environment } from '../../../environments/environment';
 import { catchError, map, of, tap } from 'rxjs';
 

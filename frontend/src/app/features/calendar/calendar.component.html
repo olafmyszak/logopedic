@@ -1,0 +1,47 @@
+<div class="calendar-wrapper">
+    <div class="calendar-controls">
+        <button (click)="previousWeek()">◀</button>
+        <strong>{{ viewDate | calendarDate: 'weekViewTitle' : locale }}</strong>
+        <button (click)="nextWeek()">▶</button>
+    </div>
+
+    <mwl-calendar-week-view
+        (eventClicked)="onEventClicked($event.event)"
+        (eventTimesChanged)="onEventTimesChanged($event)"
+        [dayEndHour]="20"
+        [dayStartHour]="7"
+        [eventTitleTemplate]="eventTitle"
+        [events]="events()"
+        [hourSegments]="3"
+        [locale]="locale"
+        [refresh]="refresh"
+        [validateEventTimesChanged]="validateEventTimesChanged"
+        [viewDate]="viewDate"
+        [weekStartsOn]="weekStartsOn"
+    />
+
+    <ng-template #eventTitle let-event="event">
+        <div class="cal-event-custom">
+            @if (event.cssClass === 'short-event') {
+                <span class="patient-name">{{ event.title }}</span>
+                <span class="appointment-time">
+                    {{ event.start | date:'shortTime' }} - {{ event.end | date:'shortTime' }}
+                </span>
+            } @else {
+                <span class="patient-name">{{ event.title }}</span>
+                <br/>
+                <span class="appointment-time">
+                    {{ event.start | date:'shortTime' }} - {{ event.end | date:'shortTime' }}
+                </span>
+            }
+        </div>
+    </ng-template>
+
+    @if (loading()) {
+        <div class="loading">Loading...</div>
+    }
+
+    @if (error()) {
+        <div class="error">{{ error() }}</div>
+    }
+</div>
