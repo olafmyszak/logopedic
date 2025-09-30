@@ -15,18 +15,16 @@ import { finalize } from 'rxjs';
     changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class LoginComponent {
-    private fb = inject(FormBuilder);
-    private auth = inject(AuthService);
-    private router = inject(Router);
-
     serverError = signal<string | null>(null);
     isLoading = signal(false);
-
+    private fb = inject(FormBuilder);
     form = this.fb.group({
         email: ['', [Validators.required, Validators.email]],
         password: ['', Validators.required],
         rememberMe: [true]
     });
+    private auth = inject(AuthService);
+    private router = inject(Router);
 
     emailError(): string | null {
         const ctl = this.form.get('email');

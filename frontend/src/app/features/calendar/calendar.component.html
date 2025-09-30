@@ -6,18 +6,18 @@
     </div>
 
     <mwl-calendar-week-view
-        [viewDate]="viewDate"
-        [events]="events()"
+        (eventClicked)="onEventClicked($event.event)"
+        (eventTimesChanged)="onEventTimesChanged($event)"
+        [dayEndHour]="20"
+        [dayStartHour]="7"
         [eventTitleTemplate]="eventTitle"
+        [events]="events()"
+        [hourSegments]="3"
         [locale]="locale"
         [refresh]="refresh"
-        [weekStartsOn]="weekStartsOn"
-        (eventTimesChanged)="onEventTimesChanged($event)"
-        (eventClicked)="onEventClicked($event.event)"
-        [hourSegments]="3"
-        [dayStartHour]="7"
-        [dayEndHour]="20"
         [validateEventTimesChanged]="validateEventTimesChanged"
+        [viewDate]="viewDate"
+        [weekStartsOn]="weekStartsOn"
     />
 
     <ng-template #eventTitle let-event="event">

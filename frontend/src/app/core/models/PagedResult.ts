@@ -11,5 +11,5 @@ export function emptyPagedResult<T>(): PagedResult<T> {
         totalCount: 0,
         pageNumber: 1,
         pageSize: 20
-    }
+    };
 }

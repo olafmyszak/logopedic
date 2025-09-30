@@ -13,16 +13,13 @@ import { PatientDto } from '../models/PatientDto';
     providedIn: 'root'
 })
 export class CalendarIntegrationService {
-    private appointmentService = inject(AppointmentsService);
-    private patientsService = inject(PatientsService);
-
-    private currentLoadSubscription?: Subscription;
-
     readonly events = signal<CalendarEvent[]>([]);
     readonly loading = signal(false);
     readonly error = signal<string | null>(null);
     refresh = new Subject<void>();
-
+    private appointmentService = inject(AppointmentsService);
+    private patientsService = inject(PatientsService);
+    private currentLoadSubscription?: Subscription;
 
     loadRange(from: Date, to: Date) {
         this.currentLoadSubscription?.unsubscribe();

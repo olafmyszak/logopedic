@@ -4,7 +4,6 @@ import {
     CalendarDatePipe,
     CalendarEvent,
     CalendarEventTimesChangedEvent,
-    CalendarEventTitleFormatter,
     CalendarWeekViewComponent,
     DateAdapter,
     DAYS_OF_WEEK,
@@ -16,7 +15,6 @@ import { endOfWeek, isSameDay, startOfWeek } from 'date-fns';
 import { DatePipe, registerLocaleData } from '@angular/common';
 import localePl from '@angular/common/locales/pl';
 import { CustomDateFormatter } from './custom-date-formatter.provider';
-import { CustomEventTitleFormatter } from './custom-event-title-formatter.provider';
 
 registerLocaleData(localePl);
 
@@ -25,35 +23,29 @@ registerLocaleData(localePl);
     imports: [CalendarWeekViewComponent, CalendarDatePipe, DatePipe],
     providers: [
         provideCalendar({
-            provide: DateAdapter,
-            useFactory: adapterFactory
-        },
-        {
-            dateFormatter: {
-                provide: CalendarDateFormatter,
-                useClass: CustomDateFormatter
+                provide: DateAdapter,
+                useFactory: adapterFactory
             },
-            // eventTitleFormatter: {
-            //     provide: CalendarEventTitleFormatter,
-            //     useClass: CustomEventTitleFormatter
-            // }
-        })
+            {
+                dateFormatter: {
+                    provide: CalendarDateFormatter,
+                    useClass: CustomDateFormatter
+                }
+            })
     ],
     templateUrl: './calendar.component.html',
     styleUrl: './calendar.component.scss',
     changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class CalendarComponent implements OnInit {
+    viewDate: Date = new Date();
+    readonly locale: string = 'pl';
+    readonly weekStartsOn: number = DAYS_OF_WEEK.MONDAY;
     private calendarIntegration = inject(CalendarIntegrationService);
-
     readonly events = this.calendarIntegration.events;
     readonly loading = this.calendarIntegration.loading;
     readonly error = this.calendarIntegration.error;
     readonly refresh = this.calendarIntegration.refresh;
-
-    viewDate = new Date();
-    readonly locale: string = 'pl';
-    readonly weekStartsOn: number = DAYS_OF_WEEK.MONDAY;
 
     ngOnInit() {
         this.loadCurrentWeek();
@@ -86,7 +78,7 @@ export class CalendarComponent implements OnInit {
     validateEventTimesChanged = (
         {event, newStart, newEnd}: CalendarEventTimesChangedEvent,
         addCssClass = true
-    ) => {
+    ): boolean => {
         delete event.cssClass;
 
         const sameDay = isSameDay(newStart, newEnd!);

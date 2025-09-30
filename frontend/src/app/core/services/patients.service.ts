@@ -10,10 +10,6 @@ import { catchError, finalize, Observable, of, share, Subscription, switchMap, t
     providedIn: 'root'
 })
 export class PatientsService {
-    private http = inject(HttpClient);
-
-    private loadSubscription?: Subscription;
-
     readonly patients = signal<PatientDto[]>([]);
     readonly loading = signal(false);
     readonly error = signal<string | null>(null);
@@ -24,6 +20,8 @@ export class PatientsService {
         });
         return map;
     });
+    private http = inject(HttpClient);
+    private loadSubscription?: Subscription;
 
     query(params: PatientQueryParams) {
         const httpParams = this.buildHttpParams(params);
