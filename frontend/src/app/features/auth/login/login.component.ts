@@ -4,6 +4,8 @@ import { AuthService } from '../../../core/services/auth.service';
 import { Router } from '@angular/router';
 import { LoginDto } from '../../../core/models/LoginDto';
 import { finalize } from 'rxjs';
+import { HttpErrorResponse, HttpStatusCode } from '@angular/common/http';
+import { ValidationProblemDetails } from '../../../core/models/ValidationProblemDetails';
 
 @Component({
     selector: 'app-login',
@@ -15,16 +17,18 @@ import { finalize } from 'rxjs';
     changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class LoginComponent {
-    serverError = signal<string | null>(null);
-    isLoading = signal(false);
     private fb = inject(FormBuilder);
+    private auth = inject(AuthService);
+    private router = inject(Router);
+
     form = this.fb.group({
         email: ['', [Validators.required, Validators.email]],
         password: ['', Validators.required],
         rememberMe: [true]
     });
-    private auth = inject(AuthService);
-    private router = inject(Router);
+
+    serverError = signal<string | null>(null);
+    isLoading = signal(false);
 
     emailError(): string | null {
         const ctl = this.form.get('email');
@@ -34,11 +38,11 @@ export class LoginComponent {
         }
 
         if (ctl.hasError('required')) {
-            return 'Email is required';
+            return 'Email is required.';
         }
 
         if (ctl.hasError('email')) {
-            return 'Enter a valid email';
+            return 'Enter a valid email.';
         }
 
         return null;
@@ -52,7 +56,7 @@ export class LoginComponent {
         }
 
         if (ctl.hasError('required')) {
-            return 'Email is required';
+            return 'Email is required.';
         }
 
         return null;
@@ -78,9 +82,18 @@ export class LoginComponent {
             .pipe(finalize(() => this.isLoading.set(false)))
             .subscribe({
                 next: () => this.router.navigateByUrl('/').then(() => window.location.reload()),
-                error: (err) => {
-                    const msg = err?.error?.message ?? err?.message ?? 'Unable to sign in';
-                    this.serverError.set(msg);
+                error: (err: HttpErrorResponse) => {
+                    if (err.status === HttpStatusCode.BadRequest && err.error) {
+                        const problemDetails = err.error as ValidationProblemDetails;
+
+                        const allErrors: string = Object.values(problemDetails.errors)
+                            .flat()
+                            .join(', ');
+
+                        this.serverError.set(allErrors);
+                    } else if (err.status == HttpStatusCode.Unauthorized) {
+                        this.serverError.set('Invalid username or password.');
+                    }
                 }
             });
     }
