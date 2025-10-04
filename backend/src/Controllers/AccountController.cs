@@ -1,9 +1,9 @@
 ﻿using LogopedicBackend.Constants;
 using LogopedicBackend.Data;
 using LogopedicBackend.Dtos;
+using LogopedicBackend.Extensions;
 using LogopedicBackend.Models;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using SignInResult = Microsoft.AspNetCore.Identity.SignInResult;
@@ -29,8 +29,10 @@ public class AccountController(
         IdentityResult create = await userManager.CreateAsync(user, dto.Password);
         if (!create.Succeeded)
         {
-            return BadRequest(create.Errors);
+            // return BadRequest(create.Errors);
+            return ValidationProblem(create.ToValidationProblemDetails(HttpContext.Request.Path));
         }
+
 
         await userManager.AddToRoleAsync(user, AppRoles.Therapist);
 
@@ -77,8 +79,5 @@ public class AccountController(
     [HttpGet("isLoggedIn")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public IActionResult IsLoggedIn()
-    {
-        return Ok();
-    }
+    public IActionResult IsLoggedIn() => Ok();
 }

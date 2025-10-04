@@ -44,6 +44,13 @@ builder.Services
         options.Password.RequireLowercase = false;
         options.Password.RequireUppercase = false;
         options.Password.RequiredLength = 8;
+
+        options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
+        options.Lockout.MaxFailedAccessAttempts = 5;
+        options.Lockout.AllowedForNewUsers = true;
+
+        options.User.RequireUniqueEmail = true;
+        options.User.AllowedUserNameCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._@+!";
     })
     .AddSignInManager()
     .AddRoles<IdentityRole>()
@@ -98,8 +105,8 @@ else
 
         options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
             RateLimitPartition.GetFixedWindowLimiter(
-                partitionKey: httpContext.User.Identity?.Name ?? httpContext.Request.Headers.Host.ToString(),
-                factory: _ => new FixedWindowRateLimiterOptions
+                httpContext.User.Identity?.Name ?? httpContext.Request.Headers.Host.ToString(),
+                _ => new FixedWindowRateLimiterOptions
                 {
                     AutoReplenishment = true,
                     PermitLimit = permitLimit,
@@ -113,7 +120,7 @@ else
             httpContext.HttpContext.Response.Headers.RetryAfter = "60";
             // httpContext.HttpContext.Response.ContentType = "application/json";
 
-            var problemDetails = new ProblemDetails
+            ProblemDetails problemDetails = new()
             {
                 Status = StatusCodes.Status429TooManyRequests,
                 Title = "Too many requests",
