@@ -17,18 +17,16 @@ import { ValidationProblemDetails } from '../../../core/models/ValidationProblem
     changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class LoginComponent {
+    serverError = signal<string | null>(null);
+    isLoading = signal(false);
     private fb = inject(FormBuilder);
-    private auth = inject(AuthService);
-    private router = inject(Router);
-
     form = this.fb.group({
         email: ['', [Validators.required, Validators.email]],
         password: ['', Validators.required],
         rememberMe: [true]
     });
-
-    serverError = signal<string | null>(null);
-    isLoading = signal(false);
+    private auth = inject(AuthService);
+    private router = inject(Router);
 
     emailError(): string | null {
         const ctl = this.form.get('email');

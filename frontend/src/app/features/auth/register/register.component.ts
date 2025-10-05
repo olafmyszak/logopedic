@@ -7,6 +7,8 @@ import { RegisterDto } from '../../../core/models/RegisterDto';
 import { ValidationProblemDetails } from '../../../core/models/ValidationProblemDetails';
 import { finalize } from 'rxjs';
 import { HttpErrorResponse, HttpStatusCode } from '@angular/common/http';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { LoginDto } from '../../../core/models/LoginDto';
 
 @Component({
     selector: 'app-register',
@@ -18,10 +20,12 @@ import { HttpErrorResponse, HttpStatusCode } from '@angular/common/http';
     changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class RegisterComponent {
+    serverError = signal<string | null>(null);
+    isLoading = signal(false);
     private fb = inject(FormBuilder);
     private auth = inject(AuthService);
     private router = inject(Router);
-
+    private snackBar = inject(MatSnackBar);
     private readonly MIN_PASSWORD_LENGTH = 8;
     form = this.fb.nonNullable.group({
             email: ['', [Validators.required, Validators.email]],
@@ -33,9 +37,6 @@ export class RegisterComponent {
             validators: ComparePassword('password', 'confirmPassword')
         }
     );
-
-    serverError = signal<string | null>(null);
-    isLoading = signal(false);
 
     fullNameError(): string | null {
         const ctl = this.form.get('fullName');
@@ -125,7 +126,11 @@ export class RegisterComponent {
         this.auth.register(registerDto)
             .pipe(finalize(() => this.isLoading.set(false)))
             .subscribe({
-                next: () => this.router.navigateByUrl('/').then(() => window.location.reload()),
+                next: () => {
+                    this.router.navigateByUrl('/').then(() => {
+                        this.snackBar.open('Successfully registered! You can now sign in!', 'OK', {duration: 2000});
+                    });
+                },
                 error: (err: HttpErrorResponse) => {
                     if (err.status === HttpStatusCode.BadRequest && err.error) {
                         const problemDetails = err.error as ValidationProblemDetails;

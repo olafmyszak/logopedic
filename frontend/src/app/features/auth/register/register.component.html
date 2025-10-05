@@ -3,25 +3,25 @@
         <h1 class="title">Sign up</h1>
 
         <label class="label" for="fullName">Full name</label>
-        <input formControlName="fullName" id="fullName" type="text"/>
+        <input autocomplete="name" formControlName="fullName" id="fullName" type="text"/>
         @if (fullNameError()) {
             <div class="error">{{ fullNameError() }}</div>
         }
 
         <label class="label" for="email">Email</label>
-        <input formControlName="email" id="email" type="email"/>
+        <input autocomplete="email" formControlName="email" id="email" type="email"/>
         @if (emailError()) {
             <div class="error">{{ emailError() }}</div>
         }
 
         <label class="label" for="password">Password</label>
-        <input formControlName="password" id="password" type="password"/>
+        <input autocomplete="new-password" formControlName="password" id="password" type="password"/>
         @if (passwordError()) {
             <div class="error">{{ passwordError() }}</div>
         }
 
         <label class="label" for="confirmPassword">Confirm password</label>
-        <input formControlName="confirmPassword" id="confirmPassword" type="password"/>
+        <input autocomplete="new-password" formControlName="confirmPassword" id="confirmPassword" type="password"/>
         @if (confirmPasswordError()) {
             <div class="error">{{ confirmPasswordError() }}</div>
         }
