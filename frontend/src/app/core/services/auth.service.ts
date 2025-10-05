@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { LoginDto } from '../models/LoginDto';
 import { environment } from '../../../environments/environment';
 import { catchError, map, of, tap } from 'rxjs';
+import { RegisterDto } from '../models/RegisterDto';
 
 @Injectable({
     providedIn: 'root'
@@ -11,6 +12,12 @@ export class AuthService {
     private http = inject(HttpClient);
 
     private token: string | null = null;
+
+    register(registerDto: RegisterDto) {
+        return this.http.post(`${environment.apiBaseUrl}/account/register`, registerDto, {
+            withCredentials: true
+        });
+    }
 
     login(loginDto: LoginDto) {
         return this.http.post(`${environment.apiBaseUrl}/account/login`, loginDto, {

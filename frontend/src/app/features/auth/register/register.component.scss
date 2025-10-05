@@ -4,19 +4,19 @@
     font-family: system-ui, -apple-system, 'Segoe UI', Roboto;
 }
 
-.login-root {
+.register-root {
     display: flex;
     align-items: center;
     justify-content: center;
     min-height: 70vh;
 }
 
-.login-card {
+.register-card {
     width: 320px;
     padding: 1.25rem;
     border-radius: 8px;
     box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08);
-    background: #ffffff;
+    background-color: #ffffff;
 }
 
 .title {
@@ -27,7 +27,7 @@
 .label {
     display: block;
     margin-top: 0.5rem;
-    font-size: 0.85rem
+    font-size: 0.85rem;
 }
 
 input {
@@ -37,18 +37,6 @@ input {
     border-radius: 4px;
     border: 1px solid #cfcfcf;
     box-sizing: border-box;
-}
-
-input[type="checkbox"] {
-    width: auto;
-}
-
-.inline {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin-top: 0.5rem;
-    width: auto;
 }
 
 button {
